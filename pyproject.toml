@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "instadl"
+version = "0.1.0"
+description = "Baixa fotos e vídeos de posts do Instagram a partir do link"
+requires-python = ">=3.9"
+dependencies = ["requests>=2.31", "gallery-dl>=1.27", "yt-dlp>=2024.8.6"]
+
+[project.scripts]
+instadl = "instadl.cli:main"
+
+[tool.setuptools]
+packages = ["instadl"]
