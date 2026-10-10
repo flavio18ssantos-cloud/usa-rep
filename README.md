@@ -1,8 +1,8 @@
-# instadl — baixar fotos do Instagram pelo link
+# instadl — baixar fotos do Instagram (e TikTok) pelo link
 
-Ferramenta de linha de comando que recebe o link de um post/reel do Instagram e
-salva as fotos (e vídeos) em alta resolução, incluindo todos os itens de um
-carrossel.
+Ferramenta de linha de comando que recebe o link de um post/reel do Instagram
+ou de um vídeo/post de fotos do TikTok e salva as mídias em alta resolução,
+incluindo todos os itens de um carrossel.
 
 Ela tenta vários métodos em sequência até um funcionar:
 
@@ -15,6 +15,9 @@ Ela tenta vários métodos em sequência até um funcionar:
 Se você passar cookies (`--cookies` ou `--cookies-from-browser`), o
 `gallery-dl` vira o primeiro método, pois é o que melhor lida com posts
 privados ou com a tela de login do Instagram.
+
+Para links do **TikTok** (inclusive os curtos `vt.tiktok.com/...`), a ordem é
+`yt-dlp` (vídeos) e depois `gallery-dl` (posts de fotos).
 
 ## Instalação
 
@@ -58,6 +61,9 @@ instadl -f links.txt
 
 # só fotos, ignora vídeos
 instadl --only-photos https://www.instagram.com/p/XXXXXXX/
+
+# TikTok (vídeo ou post de fotos)
+instadl https://vt.tiktok.com/ZSxxxxxxx/
 ```
 
 Sem ativar o ambiente virtual, o atalho `./baixar.sh <link>` faz a mesma coisa.

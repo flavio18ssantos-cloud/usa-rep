@@ -1,6 +1,8 @@
 """
 Núcleo do instadl.
 
+Suporta links do Instagram (posts, reels) e do TikTok (vídeos e posts de fotos).
+
 Estratégias, em ordem (cada uma é tentada se a anterior falhar):
   1. direct   - API GraphQL pública / página "embed" do Instagram (sem dependências
                 além de `requests`; funciona para a maioria dos posts públicos).
@@ -34,6 +36,7 @@ GRAPHQL_DOC_ID = "8845758582119845"
 GRAPHQL_URL = "https://www.instagram.com/graphql/query"
 
 _SHORTCODE_RE = re.compile(r"/(?:p|reel|reels|tv)/([A-Za-z0-9_-]+)")
+_TIKTOK_HOSTS = ("tiktok.com", "vt.tiktok.com", "vm.tiktok.com", "m.tiktok.com")
 
 
 class InstadlError(Exception):
@@ -68,6 +71,19 @@ class Options:
 # --------------------------------------------------------------------------- #
 # URL
 # --------------------------------------------------------------------------- #
+def detect_platform(url: str) -> str:
+    """Retorna "instagram" ou "tiktok" conforme o link."""
+    url = url.strip()
+    if re.fullmatch(r"[A-Za-z0-9_-]{5,}", url):
+        return "instagram"
+    host = urlparse(url if "://" in url else "https://" + url).netloc.lower().removeprefix("www.")
+    if host == "tiktok.com" or host.endswith(".tiktok.com"):
+        return "tiktok"
+    if host in ("instagram.com", "instagr.am"):
+        return "instagram"
+    raise InstadlError(f"Isso não parece um link do Instagram nem do TikTok: {url}")
+
+
 def parse_url(url: str) -> str:
     """Extrai o shortcode de um link de post/reel do Instagram.
 
@@ -189,27 +205,25 @@ _EMBED_OWNER_RE = re.compile(r'class="UsernameText"[^>]*>([^<]+)<', re.S)
 
 def parse_embed_html(html: str, shortcode: str) -> Post:
     """Extrai a foto principal da página /embed/captioned/ (apenas 1ª mídia)."""
-    # Tenta o JSON embutido (contém carrossel completo em alguns casos)
-    for m in re.finditer(r'"shortcode_media":', html):
-        start = m.end()
-        depth, i = 0, start
-        while i < len(html):
-            c = html[i]
-            if c == "{":
-                depth += 1
-            elif c == "}":
-                depth -= 1
-                if depth == 0:
-                    try:
-                        raw = html[start : i + 1].encode().decode("unicode_escape")
-                        node = json.loads(raw)
-                        post = parse_graphql_media(node)
-                        if post.items:
-                            return post
-                    except Exception:
-                        pass
-                    break
-            i += 1
+    # Tenta o JSON embutido (contém o carrossel completo). Ele pode aparecer
+    # como JSON puro ou escapado dentro de uma string JS ("gql_data":{\"shortcode_media\":...}).
+    for m in re.finditer(r'\\?"shortcode_media\\?"\s*:', html):
+        raw = _match_braces(html, m.end())
+        if not raw:
+            continue
+        for decoder in (lambda r: json.loads(r), lambda r: json.loads(json.loads('"' + r + '"'))):
+            try:
+                node = decoder(raw)
+            except Exception:
+                continue
+            try:
+                post = parse_graphql_media(node)
+            except Exception:
+                break
+            if post.items:
+                post.shortcode = post.shortcode or shortcode
+                return post
+            break
     m = _EMBED_IMG_RE.search(html) or _EMBED_IMG_RE2.search(html)
     if not m:
         raise InstadlError("Página embed sem imagem (post privado ou bloqueado).")
@@ -220,6 +234,23 @@ def parse_embed_html(html: str, shortcode: str) -> Post:
         owner=owner_m.group(1).strip() if owner_m else "",
         items=[MediaItem(url=src, is_video=False, index=0)],
     )
+
+
+def _match_braces(text: str, start: int) -> str:
+    """Retorna o trecho `{...}` balanceado que começa em/apos `start`."""
+    i = text.find("{", start)
+    if i < 0:
+        return ""
+    depth = 0
+    for j in range(i, len(text)):
+        c = text[j]
+        if c == "{":
+            depth += 1
+        elif c == "}":
+            depth -= 1
+            if depth == 0:
+                return text[i : j + 1]
+    return ""
 
 
 def fetch_embed(shortcode: str, opts: Options) -> Post:
@@ -257,7 +288,10 @@ def _save_items(post: Post, opts: Options) -> list[Path]:
     return saved
 
 
-def strategy_direct(shortcode: str, opts: Options) -> list[Path]:
+def strategy_direct(url: str, opts: Options) -> list[Path]:
+    if detect_platform(url) != "instagram":
+        raise InstadlError("método direct só funciona para Instagram")
+    shortcode = parse_url(url)
     errors = []
     for name, fn in (("graphql", fetch_graphql), ("embed", fetch_embed)):
         try:
@@ -295,7 +329,7 @@ def _snapshot(dirpath: Path) -> set[Path]:
     return {p for p in dirpath.rglob("*") if p.is_file()} if dirpath.exists() else set()
 
 
-def strategy_gallery_dl(shortcode: str, opts: Options) -> list[Path]:
+def strategy_gallery_dl(url: str, opts: Options) -> list[Path]:
     cmd = _exe("gallery-dl")
     if not cmd:
         raise InstadlError("gallery-dl não está instalado (pip install gallery-dl)")
@@ -306,8 +340,8 @@ def strategy_gallery_dl(shortcode: str, opts: Options) -> list[Path]:
     elif opts.cookies_from_browser:
         cmd += ["--cookies-from-browser", opts.cookies_from_browser]
     if opts.only_photos:
-        cmd += ["-o", "extractor.instagram.videos=false"]
-    cmd.append(canonical_url(shortcode))
+        cmd += ["-o", "extractor.instagram.videos=false", "-o", "extractor.tiktok.videos=false"]
+    cmd.append(url)
     proc = _run(cmd, opts)
     new = sorted(_snapshot(opts.out_dir) - before)
     if proc.returncode != 0 and not new:
@@ -322,7 +356,7 @@ def strategy_gallery_dl(shortcode: str, opts: Options) -> list[Path]:
 # --------------------------------------------------------------------------- #
 # Estratégia 3: yt-dlp
 # --------------------------------------------------------------------------- #
-def strategy_yt_dlp(shortcode: str, opts: Options) -> list[Path]:
+def strategy_yt_dlp(url: str, opts: Options) -> list[Path]:
     cmd = _exe("yt-dlp")
     if not cmd:
         raise InstadlError("yt-dlp não está instalado (pip install yt-dlp)")
@@ -336,7 +370,7 @@ def strategy_yt_dlp(shortcode: str, opts: Options) -> list[Path]:
         cmd += ["--cookies", str(opts.cookies_file)]
     elif opts.cookies_from_browser:
         cmd += ["--cookies-from-browser", opts.cookies_from_browser]
-    cmd.append(canonical_url(shortcode))
+    cmd.append(url)
     proc = _run(cmd, opts)
     new = sorted(_snapshot(opts.out_dir) - before)
     if not new:
@@ -359,17 +393,25 @@ STRATEGIES = {
 def download(url: str, opts: Optional[Options] = None) -> list[Path]:
     """Baixa todas as mídias do post. Retorna os arquivos salvos."""
     opts = opts or Options()
-    shortcode = parse_url(url)
-    order = list(opts.strategies)
-    if (opts.cookies_file or opts.cookies_from_browser) and "gallery-dl" in order:
-        order.remove("gallery-dl")
-        order.insert(0, "gallery-dl")
-    _log(opts, f"post {shortcode} -> {opts.out_dir}  (ordem: {', '.join(order)})")
+    platform = detect_platform(url)
+    if platform == "instagram":
+        target = canonical_url(parse_url(url))
+        order = list(opts.strategies)
+        if (opts.cookies_file or opts.cookies_from_browser) and "gallery-dl" in order:
+            order.remove("gallery-dl")
+            order.insert(0, "gallery-dl")
+    else:
+        # TikTok: yt-dlp resolve links curtos e baixa vídeos; gallery-dl cobre posts de fotos
+        target = url.strip() if "://" in url else "https://" + url.strip()
+        order = [n for n in ("yt-dlp", "gallery-dl") if n in opts.strategies]
+        if not order:
+            raise InstadlError("para TikTok use --method yt-dlp ou --method gallery-dl")
+    _log(opts, f"{platform}: {target} -> {opts.out_dir}  (ordem: {', '.join(order)})")
 
     failures: list[str] = []
     for name in order:
         try:
-            files = STRATEGIES[name](shortcode, opts)
+            files = STRATEGIES[name](target, opts)
             if files:
                 return files
         except Exception as e:  # noqa: BLE001

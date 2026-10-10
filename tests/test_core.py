@@ -111,3 +111,43 @@ def test_save_items_names_files(monkeypatch, tmp_path):
     files = core._save_items(post, Options(out_dir=tmp_path, only_photos=True))
     assert [f.name for f in files] == ["natgeo_C3ZLMq7v2V1_1.jpg", "natgeo_C3ZLMq7v2V1_2.jpg"]
     assert (tmp_path / "natgeo_C3ZLMq7v2V1.txt").read_text() == "Carrossel"
+
+
+def test_parse_embed_html_js_escaped_json_gives_full_carousel():
+    html = (FIX / "embed_escaped.html").read_text()
+    post = parse_embed_html(html, "C3ZLMq7v2V1")
+    assert post.owner == "natgeo"
+    assert len(post.items) == 3
+    assert post.items[1].url.endswith("b_1080.jpg")
+    assert post.items[2].is_video
+
+
+@pytest.mark.parametrize(
+    "url,platform",
+    [
+        ("https://www.instagram.com/p/C3ZLMq7v2V1/", "instagram"),
+        ("ABCDEF1", "instagram"),
+        ("https://vt.tiktok.com/ZSb7L7TFS/", "tiktok"),
+        ("https://www.tiktok.com/@user/video/7694772702212541703", "tiktok"),
+        ("https://www.tiktok.com/@user/photo/123", "tiktok"),
+    ],
+)
+def test_detect_platform(url, platform):
+    assert core.detect_platform(url) == platform
+
+
+def test_detect_platform_rejects_other():
+    with pytest.raises(InstadlError):
+        core.detect_platform("https://youtube.com/watch?v=x")
+
+
+def test_tiktok_uses_ytdlp_then_gallery_dl_with_original_url(monkeypatch, tmp_path):
+    calls = []
+    for name in ("direct", "gallery-dl", "yt-dlp"):
+        def rec(url, opts, _n=name):
+            calls.append((_n, url))
+            raise InstadlError("x")
+        monkeypatch.setitem(core.STRATEGIES, name, rec)
+    with pytest.raises(InstadlError):
+        core.download("https://vt.tiktok.com/ZSb7L7TFS/", Options(out_dir=tmp_path))
+    assert calls == [("yt-dlp", "https://vt.tiktok.com/ZSb7L7TFS/"), ("gallery-dl", "https://vt.tiktok.com/ZSb7L7TFS/")]
