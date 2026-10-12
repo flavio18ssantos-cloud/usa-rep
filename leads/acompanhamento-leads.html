@@ -97,13 +97,13 @@ h1{color:var(--brand-fg);font-family:var(--display);font-size:1.75rem;line-heigh
 .count.ok{background:var(--closed-bg);color:var(--closed-ink)}
 .par{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
 .par button{font:inherit;font-size:.82rem;font-weight:500;text-align:left;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 8px;cursor:pointer;display:flex;align-items:center;gap:7px;min-width:0}
-.par button::before{content:"";flex:0 0 auto;width:14px;height:14px;border-radius:4px;border:1.5px solid var(--muted);background:transparent}
+.par button::before{content:"";flex:0 0 auto;width:16px;height:16px;border-radius:4px;border:1.5px solid var(--muted);background:transparent;display:inline-flex;align-items:center;justify-content:center;font-size:12px;line-height:1;font-weight:700}
 .par button[aria-checked="true"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
-.par button[aria-checked="true"]::before{border-color:var(--accent-fg);background:var(--accent-fg);background-image:linear-gradient(45deg,transparent 40%,var(--accent) 40% 55%,transparent 55%),linear-gradient(-45deg,transparent 50%,var(--accent) 50% 65%,transparent 65%)}
+.par button[aria-checked="true"]::before{content:"✕";border-color:var(--accent-fg);background:var(--accent-fg);color:var(--accent)}
 .par button.win[aria-checked="true"]{background:var(--closed);border-color:var(--closed);color:var(--closed-fg)}
-.par button.win[aria-checked="true"]::before{border-color:var(--closed-fg);background:var(--closed-fg)}
+.par button.win[aria-checked="true"]::before{border-color:var(--closed-fg);background:var(--closed-fg);color:var(--closed)}
 .par button.bad[aria-checked="true"]{background:var(--danger);border-color:var(--danger);color:var(--danger-fg)}
-.par button.bad[aria-checked="true"]::before{border-color:var(--danger-fg);background:var(--danger-fg)}
+.par button.bad[aria-checked="true"]::before{border-color:var(--danger-fg);background:var(--danger-fg);color:var(--danger)}
 .par button span{min-width:0;overflow-wrap:anywhere}
 .par button:disabled{opacity:.6;cursor:default}
 button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
