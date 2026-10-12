@@ -1,0 +1,565 @@
+<title>Acompanhamento Semanal de Leads</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600&display=swap">
+<style>
+/* Layout: cabeçalho da marca, resumo em tiles, filtros em chips, depois os leads agrupados por semana de entrada; cada linha tem o lead à esquerda, o termômetro e os quadradinhos de parecer à direita. */
+:root{
+  --bg:#eef3ff; --surface:#ffffff; --fg:#111a33; --muted:#55607d; --line:#d3dcf2;
+  --accent:#2b5cff; --accent-fg:#ffffff; --danger:#d11f3a; --danger-fg:#ffffff; --edit:#e11d48; --edit-fg:#ffffff;
+  --chip-l:91%; --chip-fl:26%; --brand-bg:#0b1533; --brand-fg:#ffffff; --brand-muted:#c3cdea;
+  --closed:#08894a; --closed-fg:#ffffff; --closed-ink:#087a43; --closed-bg:#d9f7e6;
+  --open:#ff8a1f; --open-fg:#2a1200; --open-ink:#c2500a; --open-bg:#ffe9d1;
+  --cold:#5b7fd8; --cold-bg:#e3ebff; --cold-ink:#2f4fa8;
+  --focus:#2b5cff; --therm-l:46%; --track:#e4eaf8;
+  --display:"Bricolage Grotesque","Trebuchet MS",sans-serif;
+  --body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0d1226; --surface:#161d38; --fg:#eaf0ff; --muted:#a0abc9; --line:#2a3458;
+    --accent:#7da2ff; --accent-fg:#0a1330; --danger:#ff6b81; --danger-fg:#2a0008; --chip-l:22%; --chip-fl:84%;
+    --closed:#2fd482; --closed-fg:#04200f; --closed-ink:#2fd482; --closed-bg:#0f3324;
+    --open:#ffa040; --open-fg:#2a1200; --open-ink:#ffa040; --open-bg:#3d2608;
+    --cold:#7da2ff; --cold-bg:#15214a; --cold-ink:#a9c1ff;
+    --focus:#a9c1ff; --therm-l:58%; --track:#232c4d;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0d1226; --surface:#161d38; --fg:#eaf0ff; --muted:#a0abc9; --line:#2a3458;
+  --accent:#7da2ff; --accent-fg:#0a1330; --danger:#ff6b81; --danger-fg:#2a0008; --chip-l:22%; --chip-fl:84%;
+  --closed:#2fd482; --closed-fg:#04200f; --closed-ink:#2fd482; --closed-bg:#0f3324;
+  --open:#ffa040; --open-fg:#2a1200; --open-ink:#ffa040; --open-bg:#3d2608;
+  --cold:#7da2ff; --cold-bg:#15214a; --cold-ink:#a9c1ff;
+  --focus:#a9c1ff; --therm-l:58%; --track:#232c4d;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45}
+.wrap{max-width:960px;margin:0 auto;padding-inline:16px;padding-block:28px 48px;display:flex;flex-direction:column;gap:20px}
+.brand{background:var(--brand-bg);border-radius:12px;padding:18px 20px;display:flex;flex-wrap:wrap;align-items:center;gap:14px 24px}
+.brand img{height:64px;width:auto;max-width:100%}
+.brand div{flex:1 1 240px;min-width:0}
+.brand .sub{color:var(--brand-muted)}
+.brand .upd{font-weight:600;color:var(--brand-fg);font-size:.86rem}
+h1{color:var(--brand-fg);font-family:var(--display);font-size:1.75rem;line-height:1.15;margin:0;text-wrap:balance}
+.sub{color:var(--muted);margin:4px 0 0}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+@media (max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-width:0}
+.stat .k{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.stat .v{font-family:var(--display);font-size:1.5rem;font-variant-numeric:tabular-nums}
+.stat .m{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.9rem}
+.stat.p{background:var(--accent);border-color:var(--accent)}
+.stat.p .k,.stat.p .v,.stat.p .m{color:var(--accent-fg)}
+.stat.c{background:var(--closed-bg);border-color:var(--closed)} .stat.o{background:var(--open-bg);border-color:var(--open)} .stat.f{background:var(--cold-bg);border-color:var(--cold)}
+.stat.c .v{color:var(--closed-ink)} .stat.o .v{color:var(--open-ink)} .stat.f .v{color:var(--cold-ink)}
+.stat.c .k,.stat.c .m,.stat.o .k,.stat.o .m,.stat.f .k,.stat.f .m{color:var(--fg)}
+.bar{display:flex;flex-wrap:wrap;gap:10px 24px}
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.filters button{font:inherit;font-weight:500;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 14px;cursor:pointer}
+.filters button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.filters button#fu-btn[aria-pressed="true"]{background:var(--open);color:var(--open-fg);border-color:var(--open)}
+.filters button#edit-btn{background:var(--edit);color:var(--edit-fg);border-color:var(--edit);font-weight:600}
+.filters button#add-btn{background:var(--closed);color:var(--closed-fg);border-color:var(--closed);font-weight:600}
+.lbl{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);align-self:center}
+.week{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;padding:4px 2px 0}
+.week h2{font-family:var(--display);font-size:1.05rem;margin:0}
+.week .n{color:var(--muted);font-size:.86rem;font-variant-numeric:tabular-nums}
+.list{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.row{display:flex;flex-wrap:wrap;align-items:flex-start;gap:12px 18px;padding:14px 14px;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.row.closed{background:var(--closed-bg)}
+.row.dead{opacity:.62}
+.info{flex:1 1 300px;min-width:0;display:flex;flex-direction:column;gap:6px}
+.head{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 12px}
+.name{font-weight:600;font-size:1.02rem;overflow-wrap:anywhere}
+.tel{font-weight:600;color:var(--accent);font-variant-numeric:tabular-nums;white-space:nowrap;user-select:all}
+.tel.none{color:var(--muted);font-weight:400;user-select:none}
+.meta{color:var(--muted);font-size:.86rem;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.obs{font-size:.9rem;overflow-wrap:anywhere}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:.76rem;font-weight:600;border-radius:999px;padding:2px 10px;background:hsl(var(--h) 80% var(--chip-l));color:hsl(var(--h) 75% var(--chip-fl))}
+.chip.src{background:transparent;border:1.5px solid hsl(var(--h) 70% 50%);color:var(--fg)}
+.chip.tmp{border:1.5px solid hsl(var(--h) 80% var(--therm-l));background:transparent;color:var(--fg)}
+.dates{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:.86rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.dates b{color:var(--fg);font-weight:600}
+.side{flex:0 1 330px;min-width:0;display:flex;flex-direction:column;gap:10px}
+@media (max-width:640px){.side{flex:1 1 100%}}
+.therm{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;font-size:.82rem;font-variant-numeric:tabular-nums}
+.therm .t{font-weight:600;color:hsl(var(--h) 80% var(--therm-l));white-space:nowrap}
+.therm .tr{height:8px;border-radius:999px;background:var(--track);overflow:hidden;min-width:60px}
+.therm .fl{height:100%;border-radius:999px;background:linear-gradient(90deg,hsl(215 70% var(--therm-l)),hsl(var(--h) 80% var(--therm-l)));width:var(--w)}
+.therm .age{color:var(--muted);white-space:nowrap}
+.count{font-size:.8rem;font-weight:600;border-radius:6px;padding:3px 8px;display:inline-block;width:max-content;max-width:100%}
+.count.p1{background:var(--open-bg);color:var(--open-ink)}
+.count.p2{background:var(--cold-bg);color:var(--cold-ink)}
+.count.p3{background:var(--track);color:var(--muted)}
+.count.ok{background:var(--closed-bg);color:var(--closed-ink)}
+.par{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.par button{font:inherit;font-size:.82rem;font-weight:500;text-align:left;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 8px;cursor:pointer;display:flex;align-items:center;gap:7px;min-width:0}
+.par button::before{content:"";flex:0 0 auto;width:14px;height:14px;border-radius:4px;border:1.5px solid var(--muted);background:transparent}
+.par button[aria-checked="true"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.par button[aria-checked="true"]::before{border-color:var(--accent-fg);background:var(--accent-fg);background-image:linear-gradient(45deg,transparent 40%,var(--accent) 40% 55%,transparent 55%),linear-gradient(-45deg,transparent 50%,var(--accent) 50% 65%,transparent 65%)}
+.par button.win[aria-checked="true"]{background:var(--closed);border-color:var(--closed);color:var(--closed-fg)}
+.par button.win[aria-checked="true"]::before{border-color:var(--closed-fg);background:var(--closed-fg)}
+.par button.bad[aria-checked="true"]{background:var(--danger);border-color:var(--danger);color:var(--danger-fg)}
+.par button.bad[aria-checked="true"]::before{border-color:var(--danger-fg);background:var(--danger-fg)}
+.par button span{min-width:0;overflow-wrap:anywhere}
+.par button:disabled{opacity:.6;cursor:default}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.empty{padding:28px 16px;text-align:center;color:var(--muted)}
+.note{color:var(--muted);font-size:.86rem;margin:0}
+.del{font:inherit;font-weight:600;border-radius:999px;padding:7px 14px;cursor:pointer;background:var(--surface);color:var(--danger);border:1px solid var(--danger)}
+.del.sure{background:var(--danger);color:var(--danger-fg)}
+.cancel{font:inherit;border-radius:999px;padding:7px 14px;cursor:pointer;background:var(--surface);color:var(--fg);border:1px solid var(--line)}
+.cancel[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.acts{display:flex;flex-wrap:wrap;gap:8px}
+.form{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.form input,.form select,.form textarea{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 10px;max-width:100%}
+.form input{width:170px} .form input[type="date"]{width:160px} .form textarea{width:100%;min-height:60px;resize:vertical}
+.form .wide{width:100%}
+.edit{display:flex;flex-direction:column;gap:8px;padding-top:6px;border-top:1px dashed var(--line);width:100%}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.card h3{margin:0;font-family:var(--display);font-size:1.05rem}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+.grid2 label{display:flex;flex-direction:column;gap:3px;font-size:.8rem;color:var(--muted)}
+.grid2 input,.grid2 select,.grid2 textarea{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 10px;width:100%}
+.grid2 .full{grid-column:1 / -1}
+.save{font:inherit;font-weight:600;border-radius:999px;padding:7px 16px;cursor:pointer;background:var(--accent);color:var(--accent-fg);border:1px solid var(--accent)}
+.save:disabled{opacity:.6;cursor:default}
+#msg{color:var(--open-ink);font-weight:500;margin:0}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;color:var(--muted);font-size:.8rem}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;vertical-align:-1px;margin-right:4px}
+@media (prefers-reduced-motion:no-preference){.therm .fl{transition:width .3s ease}}
+@media (max-width:520px){.stats{grid-template-columns:1fr 1fr}.par{grid-template-columns:1fr}}
+</style>
+<div class="wrap">
+  <header class="brand">
+    <!--LOGO-->
+    <div>
+      <h1>Acompanhamento Semanal de Leads</h1>
+      <p class="sub">Leads recentes agrupados por semana de entrada. Marque o parecer de cada contato, acompanhe o termômetro e priorize o follow-up.</p>
+      <p class="sub upd" id="upd">Última atualização: 12/10/2026</p>
+    </div>
+  </header>
+  <section class="stats" aria-label="Resumo">
+    <div class="stat"><div class="k">Leads</div><div class="v" id="s-all">0</div><div class="m" id="m-all">no filtro</div></div>
+    <div class="stat f"><div class="k">Sem contato</div><div class="v" id="s-nc">0</div><div class="m" id="m-nc">nenhuma tentativa</div></div>
+    <div class="stat o"><div class="k">Para follow-up</div><div class="v" id="s-fu">0</div><div class="m" id="m-fu">abertos, sem tentativa hoje</div></div>
+    <div class="stat p"><div class="k">Estimates</div><div class="v" id="s-est">0</div><div class="m" id="m-est">marcados, ainda abertos</div></div>
+    <div class="stat c"><div class="k">Fechados</div><div class="v" id="s-c">0</div><div class="m" id="m-c">0% dos leads</div></div>
+  </section>
+  <div class="bar">
+    <div class="filters" role="group" aria-label="Semana" id="semanas"><span class="lbl">Semana</span></div>
+    <div class="filters" role="group" aria-label="Período">
+      <span class="lbl">Entrou</span>
+      <button id="d-0" data-d="0" aria-pressed="true">Todos</button>
+      <button id="d-7" data-d="7" aria-pressed="false">Últimos 7 dias</button>
+      <button id="d-15" data-d="15" aria-pressed="false">Últimos 15 dias</button>
+      <button id="d-30" data-d="30" aria-pressed="false">Últimos 30 dias</button>
+    </div>
+    <div class="filters" role="group" aria-label="Status">
+      <span class="lbl">Status</span>
+      <button id="f-all" data-f="all" aria-pressed="true">Todos</button>
+      <button id="f-nc" data-f="nc" aria-pressed="false">Sem contato</button>
+      <button id="f-and" data-f="and" aria-pressed="false">Em andamento</button>
+      <button id="f-est" data-f="est" aria-pressed="false">Estimate marcado</button>
+      <button id="f-closed" data-f="closed" aria-pressed="false">Fechados</button>
+      <button id="f-dead" data-f="dead" aria-pressed="false">Descartados</button>
+    </div>
+    <div class="filters" role="group" aria-label="Follow-up">
+      <span class="lbl">Follow-up</span>
+      <button id="fu-btn" aria-pressed="false">Só disponíveis para follow-up</button>
+    </div>
+    <div class="filters" role="group" aria-label="Termômetro">
+      <span class="lbl">Termômetro</span>
+      <button id="t-all" data-t="all" aria-pressed="true">Todos</button>
+      <button id="t-q" data-t="Quente" aria-pressed="false">Quente</button>
+      <button id="t-m" data-t="Morno" aria-pressed="false">Morno</button>
+      <button id="t-f" data-t="Frio" aria-pressed="false">Frio</button>
+    </div>
+    <div class="filters" role="group" aria-label="Origem" id="origens"><span class="lbl">Origem</span></div>
+    <div class="filters" role="group" aria-label="Serviço" id="servicos"><span class="lbl">Serviço</span></div>
+    <div class="filters" role="group" aria-label="Tags" id="tags"><span class="lbl">Tags</span></div>
+    <div class="filters">
+      <button id="add-btn" aria-pressed="false">Novo lead</button>
+      <button id="edit-btn" aria-pressed="false">Editar lista</button>
+    </div>
+  </div>
+  <section class="card" id="addcard" hidden aria-label="Novo lead">
+    <h3>Novo lead</h3>
+    <form id="addform" class="grid2">
+      <label>Nome<input id="a-nome" required placeholder="Nome do lead"></label>
+      <label>Telefone<input id="a-tel" type="tel" placeholder="(404) 000-0000"></label>
+      <label>Data de entrada<input id="a-data" type="date" required></label>
+      <label>Origem<select id="a-origem"><option>Facebook</option><option>Site</option><option>Landing page</option><option>GMB (ligação)</option><option>Ligação direta</option><option>CRM</option><option>Indicação</option><option>Outro</option></select></label>
+      <label>Serviço<input id="a-serv" placeholder="LVP, Laminate, Hardwood, Degraus…"></label>
+      <label>Prazo<input id="a-prazo" placeholder="Immediate, Within a month…"></label>
+      <label>Temperatura inicial<select id="a-temp"><option value="">Sem score</option><option>Quente</option><option>Morno</option><option>Frio</option></select></label>
+      <label>CEP / cidade<input id="a-zip" placeholder="30062 · Marietta"></label>
+      <label class="full">Tags (separe por vírgula)<input id="a-tags" placeholder="Prioridade, Degraus, Longe"></label>
+      <label class="full">Observação<textarea id="a-obs" placeholder="O que foi falado no grupo, contexto do CRM…"></textarea></label>
+      <div class="full acts"><button class="save" type="submit" id="a-save">Adicionar lead</button><button class="cancel" type="button" id="a-cancel">Cancelar</button></div>
+    </form>
+    <p class="note" id="a-msg" hidden></p>
+  </section>
+  <p id="msg" hidden></p>
+  <div class="legend" aria-label="Legenda do termômetro"><span><i style="background:hsl(10 80% 50%)"></i>Quente (75+)</span><span><i style="background:hsl(40 80% 50%)"></i>Morno (45 a 74)</span><span><i style="background:hsl(215 70% 55%)"></i>Frio (até 44)</span><span>Regressivo: prioridade até 15 dias da entrada, depois janela de 30.</span></div>
+  <div id="list"><div class="empty">Carregando os leads…</div></div>
+  <p class="note">Leads alimentados a partir do grupo do WhatsApp e do CRM. O termômetro combina o score do alerta, há quanto tempo o lead entrou e o parecer marcado. Marcar um parecer registra a data da tentativa (e do contato, quando houve resposta).</p>
+</div>
+<script>
+(function(){
+  var rows=[], filter='all', semanas=[], dias=0, fuOnly=false, temps=[], origens=[], servicos=[], tagsSel=[], db=null, editing=false, pending=null, adding=false, dupOk=false;
+  var semKey='', oriKey='', serKey='', tagKey='';
+  var list=document.getElementById('list'), msg=document.getElementById('msg');
+  var PARECER=[
+    {k:'naoAtendeu',l:'Não atendeu',contact:false},
+    {k:'textoEnviado',l:'Texto enviado',contact:false},
+    {k:'primeiroContato',l:'Primeiro contato feito',contact:true},
+    {k:'ligacaoNaoAtendeu',l:'Ligação feita, não me atendeu',contact:false},
+    {k:'marcouEstimate',l:'Marcou estimate',contact:true,cls:'win'},
+    {k:'fechou',l:'Fechou',contact:true,cls:'win'},
+    {k:'descartado',l:'Descartado / sem interesse',contact:false,cls:'bad'}
+  ];
+  var ORIG_H={'Facebook':255,'Site':140,'Landing page':170,'GMB (ligação)':45,'Ligação direta':20,'CRM':300,'Indicação':120};
+  var SERV_H={'LVP':215,'Vinyl / LVP':215,'Luxury Vinyl Flooring':215,'Laminate':280,'Hardwood':28,'Degraus / escada':165,'Degraus':165,'Not sure yet':330};
+  function hue(t){var h=0;for(var i=0;i<t.length;i++)h=(h*31+t.charCodeAt(i))%360;return h;}
+  function el(tag,cls,text){var e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;}
+  function say(t){msg.textContent=t||'';msg.hidden=!t;}
+  function iso(d){return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);}
+  function today(){return iso(new Date());}
+  function parse(s){var p=String(s||'').split('-');if(p.length!==3)return null;return new Date(Number(p[0]),Number(p[1])-1,Number(p[2]));}
+  function dmy(s){var p=String(s||'').split('-');return p.length===3?p[2]+'/'+p[1]:'';}
+  function dmyFull(s){var p=String(s||'').split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:'';}
+  function daysSince(s){var d=parse(s);if(!d)return null;var t=new Date();t.setHours(0,0,0,0);return Math.round((t-d)/86400000);}
+  function weekStart(s){var d=parse(s);if(!d)return '';var wd=(d.getDay()+6)%7;d.setDate(d.getDate()-wd);return iso(d);}
+  function weekLabel(ws){var d=parse(ws);if(!d)return 'Sem data';var e=new Date(d);e.setDate(e.getDate()+6);return dmy(iso(d))+' a '+dmy(iso(e));}
+  function digits(t){return String(t||'').replace(/\D/g,'').replace(/^1(?=\d{10}$)/,'');}
+  function isOpen(r){return !r.parecer.fechou&&!r.parecer.descartado;}
+  function hasContact(r){return PARECER.some(function(p){return r.parecer[p.k];})||!!r.ultimaTentativa||!!r.ultimoContato;}
+  function followUp(r){return isOpen(r)&&r.ultimaTentativa!==today();}
+  function heat(r){
+    var p=r.parecer;
+    if(p.fechou)return 100;if(p.descartado)return 0;
+    var h={Quente:70,Morno:50,Frio:30}[r.temperatura]||45;
+    var d=daysSince(r.data);
+    if(d==null)h+=0;else if(d<=3)h+=20;else if(d<=7)h+=10;else if(d<=15)h+=0;else if(d<=30)h-=12;else h-=25;
+    if(p.marcouEstimate)h+=25;else if(p.primeiroContato)h+=10;
+    if(p.naoAtendeu||p.ligacaoNaoAtendeu)h-=5;
+    var uc=daysSince(r.ultimoContato);if(uc!=null&&uc<=3)h+=5;
+    return Math.max(0,Math.min(100,h));
+  }
+  function heatLabel(h){return h>=75?'Quente':(h>=45?'Morno':'Frio');}
+  function heatHue(h){return Math.round(215-h*2.05);}
+  function statusOf(r){
+    if(r.parecer.fechou)return 'closed';if(r.parecer.descartado)return 'dead';
+    if(r.parecer.marcouEstimate)return 'est';if(hasContact(r))return 'and';return 'nc';
+  }
+  function visible(){
+    var corte='';
+    if(dias){var dt=new Date();dt.setDate(dt.getDate()-dias);corte=iso(dt);}
+    return rows.filter(function(r){
+      return (!corte||String(r.data||'')>=corte)
+        &&(!semanas.length||semanas.indexOf(weekStart(r.data))>=0)
+        &&(!temps.length||temps.indexOf(heatLabel(heat(r)))>=0)
+        &&(!origens.length||origens.indexOf(r.origem||'')>=0)
+        &&(!servicos.length||servicos.indexOf(r.servico||'')>=0)
+        &&(!tagsSel.length||r.tags.some(function(t){return tagsSel.indexOf(t)>=0;}));
+    });
+  }
+  function render(){
+    var inF=visible();
+    var nc=0,fu=0,est=0,c=0;
+    inF.forEach(function(r){var s=statusOf(r);if(s==='nc')nc++;if(s==='est')est++;if(s==='closed')c++;if(followUp(r))fu++;});
+    document.getElementById('s-all').textContent=inF.length;
+    document.getElementById('m-all').textContent=rows.length===inF.length?'todos os leads':'de '+rows.length+' no total';
+    document.getElementById('s-nc').textContent=nc;
+    document.getElementById('s-fu').textContent=fu;
+    document.getElementById('s-est').textContent=est;
+    document.getElementById('s-c').textContent=c;
+    document.getElementById('m-c').textContent=(inF.length?Math.round(100*c/inF.length):0)+'% dos leads';
+    var shown=inF.filter(function(r){return (filter==='all'||statusOf(r)===filter)&&(!fuOnly||followUp(r));});
+    shown.sort(function(a,b){return String(b.data||'').localeCompare(String(a.data||''))||heat(b)-heat(a);});
+    list.textContent='';
+    if(!shown.length){
+      var box=el('div','list');box.appendChild(el('div','empty',rows.length?(inF.length?'Nenhum lead neste filtro.':'Nenhum lead neste período ou filtro.'):'Nenhum lead carregado ainda. Use “Novo lead” para cadastrar o primeiro.'));
+      list.appendChild(box);return;
+    }
+    var groups={},order=[];
+    shown.forEach(function(r){var k=weekStart(r.data);if(!groups[k]){groups[k]=[];order.push(k);}groups[k].push(r);});
+    order.sort().reverse();
+    order.forEach(function(k){
+      var g=groups[k];g.sort(function(a,b){return heat(b)-heat(a)||String(b.data||'').localeCompare(String(a.data||''));});
+      var h=el('div','week');h.appendChild(el('h2','','Semana de '+weekLabel(k)));
+      var fuN=g.filter(followUp).length;
+      h.appendChild(el('span','n',g.length+(g.length===1?' lead':' leads')+' · '+fuN+' para follow-up'));
+      list.appendChild(h);
+      var box=el('div','list');
+      g.forEach(function(r){box.appendChild(rowEl(r));});
+      list.appendChild(box);
+    });
+  }
+  function rowEl(r){
+    var st=statusOf(r);
+    var row=el('div','row'+(st==='closed'?' closed':'')+(st==='dead'?' dead':''));
+    var info=el('div','info');
+    var head=el('div','head');
+    head.appendChild(el('div','name',r.nome));
+    head.appendChild(el('span',r.tel?'tel':'tel none',r.tel||'sem telefone'));
+    if(r.email)head.appendChild(el('span','meta',r.email));
+    info.appendChild(head);
+    var d=daysSince(r.data);
+    var meta=['Entrou '+dmy(r.data)+(r.hora?' às '+r.hora:'')+(d!=null?' (há '+d+(d===1?' dia':' dias')+')':''),r.servico,r.prazo,r.zip].filter(Boolean).join(' · ');
+    info.appendChild(el('div','meta',meta));
+    var ch=el('div','chips');
+    if(r.temperatura){var tc=el('span','chip tmp','Alerta: '+r.temperatura);tc.style.setProperty('--h',r.temperatura==='Quente'?10:(r.temperatura==='Morno'?40:215));ch.appendChild(tc);}
+    if(r.origem){var oc=el('span','chip src',r.origem);oc.style.setProperty('--h',ORIG_H[r.origem]!=null?ORIG_H[r.origem]:hue(r.origem));ch.appendChild(oc);}
+    r.tags.forEach(function(t){var c=el('span','chip',t);c.style.setProperty('--h',hue(t));ch.appendChild(c);});
+    if(ch.children.length)info.appendChild(ch);
+    var dates=el('div','dates');
+    var uc=el('span','',''),ut=el('span','','');
+    uc.appendChild(document.createTextNode('Último contato: '));uc.appendChild(el('b','',r.ultimoContato?dmyFull(r.ultimoContato):'nenhum'));
+    ut.appendChild(document.createTextNode('Última tentativa: '));ut.appendChild(el('b','',r.ultimaTentativa?dmyFull(r.ultimaTentativa)+(daysSince(r.ultimaTentativa)?' (há '+daysSince(r.ultimaTentativa)+' d)':' (hoje)'):'nenhuma'));
+    dates.appendChild(uc);dates.appendChild(ut);
+    info.appendChild(dates);
+    if(r.obs)info.appendChild(el('div','obs',r.obs));
+    if(r.crm){var a=el('a','meta','Abrir no CRM');a.href=r.crm;a.target='_blank';a.rel='noopener';info.appendChild(a);}
+    if(editing)info.appendChild(editEl(r));
+    row.appendChild(info);
+    var side=el('div','side');
+    var hv=heat(r),hh=heatHue(hv);
+    var th=el('div','therm');th.style.setProperty('--h',hh);
+    th.appendChild(el('span','t',heatLabel(hv)+' '+hv));
+    var tr=el('div','tr');var fl=el('div','fl');fl.style.setProperty('--w',hv+'%');tr.appendChild(fl);th.appendChild(tr);
+    th.appendChild(el('span','age',d!=null?(d===0?'entrou hoje':d+' d'):'sem data'));
+    side.appendChild(th);
+    if(st==='closed')side.appendChild(el('span','count ok','Fechado'+(r.ultimoContato?' em '+dmy(r.ultimoContato):'')));
+    else if(st==='dead')side.appendChild(el('span','count p3','Descartado'));
+    else if(d!=null){
+      if(d<15)side.appendChild(el('span','count p1','Prioridade: faltam '+(15-d)+(15-d===1?' dia':' dias')+' da janela de 15'));
+      else if(d<30)side.appendChild(el('span','count p2','Janela de 30: faltam '+(30-d)+(30-d===1?' dia':' dias')));
+      else side.appendChild(el('span','count p3','Fora da janela de 30 dias ('+d+' d)'));
+    }
+    var par=el('div','par');par.setAttribute('role','group');par.setAttribute('aria-label','Parecer de '+r.nome);
+    PARECER.forEach(function(p){
+      var b=el('button','',null);b.type='button';b.id='p-'+p.k+'-'+r.id;b.className=p.cls||'';
+      b.setAttribute('role','checkbox');b.setAttribute('aria-checked',r.parecer[p.k]?'true':'false');
+      b.appendChild(el('span','',p.l));
+      b.addEventListener('click',function(){togglePar(r,p,b);});
+      par.appendChild(b);
+    });
+    side.appendChild(par);
+    row.appendChild(side);
+    return row;
+  }
+  function editEl(r){
+    var ed=el('div','edit');
+    var f1=el('div','form');
+    var inp=document.createElement('input');inp.type='tel';inp.id='tel-'+r.id;inp.value=r.tel||'';inp.placeholder='Telefone';inp.setAttribute('aria-label','Telefone de '+r.nome);
+    var sv=el('button','cancel','Salvar telefone');sv.type='button';sv.id='tels-'+r.id;
+    sv.addEventListener('click',function(){var v=inp.value.trim();if(v===(r.tel||''))return;write(r,{tel:v},sv);});
+    f1.appendChild(inp);f1.appendChild(sv);
+    var zi=document.createElement('input');zi.id='zip-'+r.id;zi.value=r.zip||'';zi.placeholder='CEP / cidade';zi.setAttribute('aria-label','CEP de '+r.nome);
+    var zs=el('button','cancel','Salvar CEP');zs.type='button';zs.id='zips-'+r.id;
+    zs.addEventListener('click',function(){var v=zi.value.trim();if(v===(r.zip||''))return;write(r,{zip:v},zs);});
+    f1.appendChild(zi);f1.appendChild(zs);
+    ed.appendChild(f1);
+    var f2=el('div','form');
+    var d1=document.createElement('input');d1.type='date';d1.id='uc-'+r.id;d1.value=r.ultimoContato||'';d1.setAttribute('aria-label','Último contato de '+r.nome);
+    var d2=document.createElement('input');d2.type='date';d2.id='ut-'+r.id;d2.value=r.ultimaTentativa||'';d2.setAttribute('aria-label','Última tentativa de '+r.nome);
+    var ds=el('button','cancel','Salvar datas');ds.type='button';ds.id='ds-'+r.id;
+    ds.addEventListener('click',function(){var a=d1.value||'',b=d2.value||'';if(a===(r.ultimoContato||'')&&b===(r.ultimaTentativa||''))return;write(r,{ultimoContato:a,ultimaTentativa:b},ds);});
+    f2.appendChild(el('span','lbl','Último contato'));f2.appendChild(d1);f2.appendChild(el('span','lbl','Última tentativa'));f2.appendChild(d2);f2.appendChild(ds);
+    ed.appendChild(f2);
+    var f3=el('div','form');f3.appendChild(el('span','lbl','Origem'));
+    ['Facebook','Site','Landing page','GMB (ligação)','Ligação direta','CRM','Indicação'].forEach(function(o,i){
+      var ob=el('button','cancel',o);ob.type='button';ob.id='o'+i+'-'+r.id;ob.setAttribute('aria-pressed',r.origem===o?'true':'false');
+      ob.addEventListener('click',function(){write(r,{origem:r.origem===o?'':o},ob);});
+      f3.appendChild(ob);
+    });
+    ed.appendChild(f3);
+    var f4=el('div','form');f4.appendChild(el('span','lbl','Alerta'));
+    ['Quente','Morno','Frio'].forEach(function(o,i){
+      var ob=el('button','cancel',o);ob.type='button';ob.id='tp'+i+'-'+r.id;ob.setAttribute('aria-pressed',r.temperatura===o?'true':'false');
+      ob.addEventListener('click',function(){write(r,{temperatura:r.temperatura===o?'':o},ob);});
+      f4.appendChild(ob);
+    });
+    ed.appendChild(f4);
+    var f5=el('div','form');
+    var ti=document.createElement('input');ti.id='tags-'+r.id;ti.value=r.tags.join(', ');ti.placeholder='Tags separadas por vírgula';ti.className='wide';ti.setAttribute('aria-label','Tags de '+r.nome);
+    var ts=el('button','cancel','Salvar tags');ts.type='button';ts.id='tagss-'+r.id;
+    ts.addEventListener('click',function(){var v=splitTags(ti.value);if(v.join('|')===r.tags.join('|'))return;write(r,{tags:v},ts);});
+    f5.appendChild(ti);
+    ['Prioridade','Degraus','Longe','Cotando concorrentes','Fora da área?','Completar dados'].forEach(function(t,i){
+      var qb=el('button','cancel',t);qb.type='button';qb.id='qt'+i+'-'+r.id;qb.setAttribute('aria-pressed',r.tags.indexOf(t)>=0?'true':'false');
+      qb.addEventListener('click',function(){var v=r.tags.slice();var k=v.indexOf(t);if(k>=0)v.splice(k,1);else v.push(t);write(r,{tags:v},qb);});
+      f5.appendChild(qb);
+    });
+    f5.appendChild(ts);
+    ed.appendChild(f5);
+    var f6=el('div','form');
+    var ta=document.createElement('textarea');ta.id='obs-'+r.id;ta.value=r.obs||'';ta.placeholder='Observação';ta.setAttribute('aria-label','Observação de '+r.nome);
+    var os=el('button','cancel','Salvar observação');os.type='button';os.id='obss-'+r.id;
+    os.addEventListener('click',function(){var v=ta.value.trim();if(v===(r.obs||''))return;write(r,{obs:v},os);});
+    f6.appendChild(ta);f6.appendChild(os);
+    ed.appendChild(f6);
+    var acts=el('div','acts');
+    if(pending===r.id){
+      var yes=el('button','del sure','Confirmar remoção');yes.type='button';yes.id='y-'+r.id;
+      yes.addEventListener('click',function(){remove(r,yes);});
+      var no=el('button','cancel','Cancelar');no.type='button';no.id='n-'+r.id;
+      no.addEventListener('click',function(){pending=null;render();});
+      acts.appendChild(yes);acts.appendChild(no);
+    }else{
+      var dl=el('button','del','Remover');dl.type='button';dl.id='d-'+r.id;dl.setAttribute('aria-label','Remover '+r.nome);
+      dl.addEventListener('click',function(){pending=r.id;render();});
+      acts.appendChild(dl);
+    }
+    ed.appendChild(acts);
+    return ed;
+  }
+  function splitTags(s){var seen={};return String(s||'').split(',').map(function(t){return t.trim();}).filter(function(t){if(!t||seen[t])return false;seen[t]=1;return true;});}
+  function touch(){if(db)db.doc('meta/painel').set({ultimaAtualizacao:today()}).catch(function(){});}
+  function write(r,patch,btn){
+    if(!db){say('Abra esta página no Claude, com a conta conectada, para salvar mudanças.');return;}
+    if(btn)btn.disabled=true;say('');
+    db.doc('leads/'+r.id).update(patch).then(touch).catch(function(){
+      say('Não foi possível salvar a mudança de '+r.nome+'. Você pode estar com acesso só de leitura.');
+      if(btn)btn.disabled=false;
+    });
+  }
+  function togglePar(r,p,b){
+    var on=!r.parecer[p.k];
+    var np={};PARECER.forEach(function(x){np[x.k]=!!r.parecer[x.k];});np[p.k]=on;
+    var patch={parecer:np};
+    if(on){
+      var t=today();
+      patch.ultimaTentativa=t;
+      if(p.contact)patch.ultimoContato=t;
+    }
+    write(r,patch,b);
+  }
+  function remove(r,b){
+    if(!db)return;b.disabled=true;say('');
+    db.doc('leads/'+r.id).delete().then(function(){pending=null;touch();}).catch(function(){
+      say('Não foi possível remover '+r.nome+'. Você pode estar com acesso só de leitura.');pending=null;render();
+    });
+  }
+  function slug(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40)||'lead';}
+  var eb=document.getElementById('edit-btn');
+  eb.addEventListener('click',function(){
+    editing=!editing;pending=null;
+    eb.setAttribute('aria-pressed',editing?'true':'false');
+    eb.textContent=editing?'Concluir edição':'Editar lista';
+    render();
+  });
+  var ab=document.getElementById('add-btn'),card=document.getElementById('addcard'),amsg=document.getElementById('a-msg');
+  function showAdd(v){adding=v;dupOk=false;card.hidden=!v;ab.setAttribute('aria-pressed',v?'true':'false');amsg.hidden=true;document.getElementById('a-save').textContent='Adicionar lead';if(v){document.getElementById('a-data').value=document.getElementById('a-data').value||today();document.getElementById('a-nome').focus();}}
+  ab.addEventListener('click',function(){showAdd(!adding);});
+  document.getElementById('a-cancel').addEventListener('click',function(){showAdd(false);});
+  document.getElementById('addform').addEventListener('submit',function(ev){
+    ev.preventDefault();
+    if(!db){amsg.textContent='Abra esta página no Claude, com a conta conectada, para cadastrar leads.';amsg.hidden=false;return;}
+    var nome=document.getElementById('a-nome').value.trim(),tel=document.getElementById('a-tel').value.trim();
+    if(!nome)return;
+    var dg=digits(tel);
+    var dup=rows.filter(function(r){return (dg&&digits(r.tel)===dg)||r.nome.toLowerCase()===nome.toLowerCase();});
+    if(dup.length&&!dupOk){
+      amsg.textContent='Já existe um lead parecido: '+dup.map(function(r){return r.nome+' ('+dmy(r.data)+')';}).join(', ')+'. Clique de novo para adicionar mesmo assim.';
+      amsg.hidden=false;dupOk=true;document.getElementById('a-save').textContent='Adicionar mesmo assim';return;
+    }
+    var data=document.getElementById('a-data').value||today();
+    var id=slug(nome)+'-'+data;
+    var doc={nome:nome,tel:tel,email:'',zip:document.getElementById('a-zip').value.trim(),data:data,hora:'',origem:document.getElementById('a-origem').value,servico:document.getElementById('a-serv').value.trim(),prazo:document.getElementById('a-prazo').value.trim(),temperatura:document.getElementById('a-temp').value,tags:splitTags(document.getElementById('a-tags').value),parecer:{},ultimoContato:'',ultimaTentativa:'',obs:document.getElementById('a-obs').value.trim(),crm:''};
+    var sb=document.getElementById('a-save');sb.disabled=true;
+    db.doc('leads/'+id).set(doc).then(function(){
+      sb.disabled=false;touch();
+      document.getElementById('addform').reset();showAdd(false);
+      say(nome+' adicionado.');
+    }).catch(function(){sb.disabled=false;amsg.textContent='Não foi possível salvar '+nome+'. Você pode estar com acesso só de leitura.';amsg.hidden=false;});
+  });
+  function multi(boxId,prefix,keys,labelOf,getSel,setSel){
+    var box=document.getElementById(boxId);
+    while(box.children.length>1)box.removeChild(box.lastChild);
+    ['all'].concat(keys).forEach(function(k,i){
+      var b=el('button','',k==='all'?'Todos':labelOf(k));b.type='button';b.id=prefix+i;b.setAttribute('data-k',k);
+      b.addEventListener('click',function(){
+        var sel=getSel();
+        if(k==='all')sel=[];else{var j=sel.indexOf(k);if(j>=0)sel.splice(j,1);else sel.push(k);}
+        setSel(sel);paint(box,sel);render();
+      });
+      box.appendChild(b);
+    });
+    paint(box,getSel());
+  }
+  function paint(box,sel){
+    Array.prototype.forEach.call(box.querySelectorAll('button'),function(x){
+      var v=x.getAttribute('data-k');
+      x.setAttribute('aria-pressed',(v==='all'?!sel.length:sel.indexOf(v)>=0)?'true':'false');
+    });
+  }
+  function buildFilters(){
+    var ws={},os={},ss={},ts={};
+    rows.forEach(function(r){ws[weekStart(r.data)]=1;if(r.origem)os[r.origem]=(os[r.origem]||0)+1;if(r.servico)ss[r.servico]=(ss[r.servico]||0)+1;r.tags.forEach(function(t){ts[t]=(ts[t]||0)+1;});});
+    var wk=Object.keys(ws).sort().reverse();
+    var k=wk.join('|');if(k!==semKey){semKey=k;semanas=semanas.filter(function(x){return wk.indexOf(x)>=0;});multi('semanas','w-',wk,function(x){return weekLabel(x);},function(){return semanas;},function(v){semanas=v;});}
+    var ok=Object.keys(os).sort(function(a,b){return os[b]-os[a]||a.localeCompare(b);});
+    k=ok.join('|');if(k!==oriKey){oriKey=k;origens=origens.filter(function(x){return ok.indexOf(x)>=0;});multi('origens','or-',ok,function(x){return x;},function(){return origens;},function(v){origens=v;});}
+    var sk=Object.keys(ss).sort(function(a,b){return ss[b]-ss[a]||a.localeCompare(b);});
+    k=sk.join('|');if(k!==serKey){serKey=k;servicos=servicos.filter(function(x){return sk.indexOf(x)>=0;});multi('servicos','sv-',sk,function(x){return x;},function(){return servicos;},function(v){servicos=v;});}
+    var tk=Object.keys(ts).sort(function(a,b){return ts[b]-ts[a]||a.localeCompare(b);});
+    k=tk.join('|');if(k!==tagKey){tagKey=k;tagsSel=tagsSel.filter(function(x){return tk.indexOf(x)>=0;});multi('tags','tg-',tk,function(x){return x;},function(){return tagsSel;},function(v){tagsSel=v;});}
+  }
+  var FIDS=['f-all','f-nc','f-and','f-est','f-closed','f-dead'];
+  FIDS.forEach(function(id){
+    var btn=document.getElementById(id);
+    btn.addEventListener('click',function(){
+      filter=btn.getAttribute('data-f');
+      FIDS.forEach(function(o){var x=document.getElementById(o);x.setAttribute('aria-pressed',x===btn?'true':'false');});
+      render();
+    });
+  });
+  var DIDS=['d-0','d-7','d-15','d-30'];
+  DIDS.forEach(function(id){
+    var btn=document.getElementById(id);
+    btn.addEventListener('click',function(){
+      dias=Number(btn.getAttribute('data-d'));
+      DIDS.forEach(function(x){var e=document.getElementById(x);e.setAttribute('aria-pressed',e===btn?'true':'false');});
+      render();
+    });
+  });
+  var TIDS=['t-all','t-q','t-m','t-f'];
+  TIDS.forEach(function(id){
+    var btn=document.getElementById(id);
+    btn.addEventListener('click',function(){
+      var t=btn.getAttribute('data-t');
+      if(t==='all')temps=[];else{var i=temps.indexOf(t);if(i>=0)temps.splice(i,1);else temps.push(t);}
+      TIDS.forEach(function(x){var e=document.getElementById(x),v=e.getAttribute('data-t');e.setAttribute('aria-pressed',(v==='all'?!temps.length:temps.indexOf(v)>=0)?'true':'false');});
+      render();
+    });
+  });
+  var fb=document.getElementById('fu-btn');
+  fb.addEventListener('click',function(){fuOnly=!fuOnly;fb.setAttribute('aria-pressed',fuOnly?'true':'false');render();});
+  function norm(s,x){
+    var par={};PARECER.forEach(function(p){par[p.k]=!!(x.parecer&&x.parecer[p.k]);});
+    return {id:s.id,nome:x.nome||s.id,tel:x.tel?String(x.tel):'',email:x.email?String(x.email):'',zip:x.zip?String(x.zip):'',data:x.data?String(x.data):'',hora:x.hora?String(x.hora):'',origem:x.origem?String(x.origem):'',servico:x.servico?String(x.servico):'',prazo:x.prazo?String(x.prazo):'',temperatura:x.temperatura?String(x.temperatura):'',tags:Array.isArray(x.tags)?x.tags.map(String):[],parecer:par,ultimoContato:x.ultimoContato?String(x.ultimoContato):'',ultimaTentativa:x.ultimaTentativa?String(x.ultimaTentativa):'',obs:x.obs?String(x.obs):'',crm:x.crm&&/^https:\/\//.test(String(x.crm))?String(x.crm):''};
+  }
+  function start(){
+    if(!window.claude||!window.claude.use){list.textContent='';var b=el('div','list');b.appendChild(el('div','empty','Abra esta página no Claude para carregar os leads.'));list.appendChild(b);return;}
+    window.claude.use('db').then(function(d){
+      if(!d){list.textContent='';var b=el('div','list');b.appendChild(el('div','empty','Entre na sua conta do Claude para carregar os leads.'));list.appendChild(b);return;}
+      db=d;
+      db.doc('meta/painel').onSnapshot(function(sn){
+        var x=sn.exists?sn.data():null,v=x&&String(x.ultimaAtualizacao||'');
+        if(/^\d{4}-\d{2}-\d{2}$/.test(v))document.getElementById('upd').textContent='Última atualização: '+dmyFull(v);
+      },function(){});
+      db.collection('leads').onSnapshot(function(snap){
+        rows=snap.docs.map(function(s){return norm(s,s.data()||{});});
+        buildFilters();render();
+      },function(){say('A conexão com os dados caiu. Recarregue a página.');});
+    });
+  }
+  start();
+})();
+</script>
