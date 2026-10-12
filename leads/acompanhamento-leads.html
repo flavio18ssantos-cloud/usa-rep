@@ -260,6 +260,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 @media (max-width:520px){.stats{grid-template-columns:1fr 1fr}.par{grid-template-columns:1fr}}
 </style>
 <div class="wrap">
+  <div id="topsentinel" aria-hidden="true" style="height:1px;margin-bottom:-13px"></div>
   <div class="top" id="top">
   <header class="brand">
     <figure class="logo">
@@ -446,7 +447,18 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       src:[['acad','Oldroyd, McElheran and Elkington, "The Short Life of Online Sales Leads", Harvard Business Review, 2011 (copy in the BYU repository)','https://scholarsarchive.byu.edu/facpub/9711'],['acad','Oldroyd (MIT), Lead Response Management Study, 2007: 21× at 5 min vs 30 min (summary)','https://ainora.lt/blog/lead-response-time-statistics-every-study-2026'],['vendor','Velocify, The Ultimate Contact Strategy: 6 calls, voicemail, sequencing','https://www.slideshare.net/Velocify/the-ultimate-contact-strategy'],['vendor','Velocify, Text Messaging for Better Sales Conversion: text after contact +112%, before −39%','https://www.slideshare.net/slideshow/text-messaging-for-better-sales-conversion-25969164/25969164'],['survey','ACHR News / Clear Seas Research, 2024: how many quotes homeowners get','https://achrnews.com/articles/155337-how-to-be-the-first-and-last-quote-a-homeowner-gets'],['survey','ArcSite, survey of 1,000 homeowners: 95% get more than one bid','https://www.arcsite.com/blog/2022-homeowner-survey-report'],['gov','Georgia Public Service Commission, Telephone Solicitation: 8am–9pm and consent','https://psc.ga.gov/about-the-psc/consumer-corner/telephone/consumer-rights/telephone-solicitation/'],['gov','TCPA quiet hours and marketing messages (legal analysis, 2025)','https://www.privacyworld.blog/2025/03/new-class-action-threat-tcpa-quiet-hours-and-marketing-messages/']]}
   };
   var guideOpen=false;
-  (function(){var topEl=document.getElementById('top');function onScroll(){topEl.classList.toggle('shrunk',window.scrollY>70);}window.addEventListener('scroll',onScroll,{passive:true});onScroll();})();
+  (function(){
+    var topEl=document.getElementById('top'),sen=document.getElementById('topsentinel');
+    function check(){var r=sen.getBoundingClientRect();topEl.classList.toggle('shrunk',r.top<-60);}
+    if(window.IntersectionObserver){
+      var io=new IntersectionObserver(function(es){es.forEach(function(e){topEl.classList.toggle('shrunk',!e.isIntersecting&&e.boundingClientRect.top<0);});},{rootMargin:'-60px 0px 0px 0px',threshold:0});
+      io.observe(sen);
+    }
+    document.addEventListener('scroll',check,{passive:true,capture:true});
+    window.addEventListener('scroll',check,{passive:true});
+    window.addEventListener('resize',check);
+    check();
+  })();
   function buildGuide(){
     var g=GUIDE[lang]||GUIDE.pt,bar=document.getElementById('gbar'),body=document.getElementById('gbody');
     bar.textContent='';
