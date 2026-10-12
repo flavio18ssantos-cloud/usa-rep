@@ -68,6 +68,15 @@ h1{color:var(--brand-fg);font-family:var(--display);font-size:1.75rem;line-heigh
 .filters button{font:inherit;font-weight:500;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 14px;cursor:pointer}
 .filters button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
 .filters button#fu-btn[aria-pressed="true"]{background:var(--open);color:var(--open-fg);border-color:var(--open)}
+.filters button#est-btn[aria-pressed="true"]{background:var(--closed);color:var(--closed-fg);border-color:var(--closed)}
+.estrip{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:.86rem;color:var(--muted);padding:8px 10px;border:1.5px dashed var(--closed);border-radius:8px;background:var(--surface)}
+.estrip .fub{font:inherit;font-size:.8rem;font-weight:600;border-radius:999px;padding:4px 10px;cursor:pointer;background:var(--closed);color:var(--closed-fg);border:1px solid var(--closed)}
+.estrip .fub:disabled{opacity:.6;cursor:default}
+.estrip .msg{flex:1 1 100%;display:flex;flex-direction:column;gap:6px;min-width:0}
+.estrip .msg .hd{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px}
+.estrip .msg .hd .acts{gap:6px}
+.estrip pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;font-size:.88rem;color:var(--fg);background:var(--sug-bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.row.closed .estrip{background:rgba(255,255,255,.1);border-color:var(--won-muted);color:var(--won-muted)}
 .filters button#edit-btn{background:var(--edit);color:var(--edit-fg);border-color:var(--edit);font-weight:600}
 .filters button#add-btn{background:var(--closed);color:var(--closed-fg);border-color:var(--closed);font-weight:600}
 .lbl{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);align-self:center}
@@ -226,6 +235,10 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       <span class="lbl" data-i18n="f_fu">Follow-up</span>
       <button id="fu-btn" aria-pressed="false" data-i18n="fu_only">Só disponíveis para follow-up</button>
     </div>
+    <div class="filters" role="group" aria-label="Estimates">
+      <span class="lbl" data-i18n="f_est">Estimates</span>
+      <button id="est-btn" aria-pressed="false" data-i18n="est_only">Só estimates em aberto</button>
+    </div>
     <div class="filters" role="group" aria-label="Termômetro">
       <span class="lbl" data-i18n="f_therm">Termômetro</span>
       <button id="t-all" data-t="all" aria-pressed="true" data-i18n="all">Todos</button>
@@ -268,7 +281,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   var I18N={
     pt:{mascot:'Tá na hora de responder',title:'Acompanhamento Semanal de Leads',subtitle:'Leads recentes agrupados por semana de entrada. Marque o parecer de cada contato, acompanhe o termômetro e priorize o follow-up.',upd:'Última atualização',
       st_leads:'Leads',st_nc:'Sem contato',st_nc_m:'nenhuma tentativa',st_fu:'Para follow-up',st_fu_m:'abertos, sem tentativa hoje',st_est:'Estimates',st_est_m:'marcados, ainda abertos',st_closed:'Fechados',all_leads:'todos os leads',of_total:'de {n} no total',pct_leads:'{p}% dos leads',
-      f_month:'Mês',f_week:'Semana',f_entered:'Entrou',all:'Todos',last7:'Últimos 7 dias',last15:'Últimos 15 dias',last30:'Últimos 30 dias',f_status:'Status',s_nc:'Sem contato',s_and:'Em andamento',s_est:'Estimate marcado',s_closed:'Fechados',s_dead:'Descartados',f_fu:'Follow-up',fu_only:'Só disponíveis para follow-up',f_therm:'Termômetro',hot:'Quente',warm:'Morno',cold:'Frio',f_source:'Origem',f_service:'Serviço',f_tags:'Tags',new_lead:'Novo lead',edit_list:'Editar lista',done_edit:'Concluir edição',
+      f_month:'Mês',f_week:'Semana',f_entered:'Entrou',all:'Todos',last7:'Últimos 7 dias',last15:'Últimos 15 dias',last30:'Últimos 30 dias',f_status:'Status',s_nc:'Sem contato',s_and:'Em andamento',s_est:'Estimates em aberto',s_closed:'Fechados',s_dead:'Descartados',f_fu:'Follow-up',fu_only:'Só disponíveis para follow-up',f_therm:'Termômetro',hot:'Quente',warm:'Morno',cold:'Frio',f_source:'Origem',f_service:'Serviço',f_tags:'Tags',new_lead:'Novo lead',edit_list:'Editar lista',done_edit:'Concluir edição',
       a_name:'Nome',a_tel:'Telefone',a_date:'Data de entrada',a_timing:'Prazo',a_temp:'Temperatura inicial',a_noscore:'Sem score',a_zip:'CEP / cidade',a_tags:'Tags (separe por vírgula)',a_obs:'Observação',a_add:'Adicionar lead',a_again:'Adicionar mesmo assim',cancel:'Cancelar',a_dup:'Já existe um lead parecido: {l}. Clique de novo para adicionar mesmo assim.',a_added:'{n} adicionado.',a_fail:'Não foi possível salvar {n}. Você pode estar com acesso só de leitura.',need_claude:'Abra esta página no Claude, com a conta conectada, para salvar mudanças.',
       lg_hot:'Quente (75+)',lg_warm:'Morno (45 a 74)',lg_cold:'Frio (até 44)',lg_est:'Verde claro: estimate marcado',lg_won:'Verde escuro: fechou',lg_count:'Regressivo: prioridade até 15 dias da entrada, depois janela de 30.',loading:'Carregando os leads…',footnote:'Leads alimentados a partir do grupo do WhatsApp, do CRM e do QuickBooks. O termômetro combina o score do alerta, há quanto tempo o lead entrou e o parecer marcado. Marcar um parecer registra a data da tentativa (e do contato, quando houve resposta).',
       empty_filter:'Nenhum lead neste filtro.',empty_period:'Nenhum lead neste período ou filtro.',empty_all:'Nenhum lead carregado ainda. Use “Novo lead” para cadastrar o primeiro.',open_in_claude:'Abra esta página no Claude para carregar os leads.',sign_in:'Entre na sua conta do Claude para carregar os leads.',conn_lost:'A conexão com os dados caiu. Recarregue a página.',
@@ -278,10 +291,10 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       won_big:'Fechou!',won_sub:'Pede o review e a indicação',closed_on:'Fechado em {d}',closed_:'Fechado',dead_:'Descartado',c15:'Prioridade: faltam {n} dias da janela de 15',c15_1:'Prioridade: falta 1 dia da janela de 15',c30:'Janela de 30: faltam {n} dias',c30_1:'Janela de 30: falta 1 dia',cout:'Fora da janela de 30 dias ({n} d)',age_d:'{n} d',age_today:'entrou hoje',no_date:'sem data',
       sug_btn:'Sugestão de follow-up',sug_close:'Fechar sugestão',sug_sms:'Texto (SMS)',sug_call:'Roteiro de ligação',sug_refl:'Mini reflexão',sug_hint:'O texto vai em inglês, pronto para mandar ao lead. Roteiro e reflexão usam o contexto deste lead.',copy:'Copiar',copied:'Copiado',sms_open:'Abrir no Mensagens',sms_nophone:'Sem telefone para abrir o SMS',sug_ai:'Gerar com a Claude',sug_ai_wait:'Gerando…',sug_ai_fail:'Não deu para gerar agora. A sugestão pronta continua acima.',sug_ai_tag:'Gerado pela Claude com o contexto do lead.',
       ctx_tab:'Me dê contexto',ctx_hint:'Escreva o que você sabe desse lead (o que conversaram, objeção, prazo, orçamento). O plano e a geração da Claude usam isso.',ctx_save:'Salvar contexto',ctx_saved:'Contexto salvo.',ctx_yours:'Seu contexto: ',
-      e_tel:'Telefone',e_save_tel:'Salvar telefone',e_zip:'CEP / cidade',e_save_zip:'Salvar CEP',e_val:'Valor ($)',e_est:'Nº do estimate',e_inv:'Nº da invoice',e_save_val:'Salvar valor',e_save_dates:'Salvar datas',e_save_tags:'Salvar tags',e_tags_ph:'Tags separadas por vírgula',e_obs:'Observação',e_save_obs:'Salvar observação',remove:'Remover',confirm_rm:'Confirmar remoção',save_fail:'Não foi possível salvar a mudança de {n}. Você pode estar com acesso só de leitura.',rm_fail:'Não foi possível remover {n}. Você pode estar com acesso só de leitura.'},
+      e_tel:'Telefone',e_save_tel:'Salvar telefone',e_zip:'CEP / cidade',e_save_zip:'Salvar CEP',e_val:'Valor ($)',e_est:'Nº do estimate',e_inv:'Nº da invoice',e_save_val:'Salvar valor',e_save_dates:'Salvar datas',e_save_tags:'Salvar tags',e_tags_ph:'Tags separadas por vírgula',e_obs:'Observação',e_save_obs:'Salvar observação',remove:'Remover',confirm_rm:'Confirmar remoção',save_fail:'Não foi possível salvar a mudança de {n}. Você pode estar com acesso só de leitura.',rm_fail:'Não foi possível remover {n}. Você pode estar com acesso só de leitura.',f_est:'Estimates',est_only:'Só estimates em aberto',v_visit:'Visita: ',v_none:'não marcada',v_in:'(em {n} dias)',v_in1:'(amanhã)',v_today:'(hoje)',v_past:'(há {n} dias)',v_sent:'Estimate enviado: ',v_notsent:'não enviado',v_fu:'Follow-up pós-estimate: ',v_fu_none:'nenhum ainda',v_next:'Próximo follow-up: ',v_fu_btn:'Follow-up feito hoje',v_msg:'Mensagem pronta',e_visit:'Data da visita',e_sent:'Estimate enviado em',e_fu:'Último follow-up pós-estimate',e_next:'Próximo follow-up',e_save_est:'Salvar datas do estimate'},
     es:{mascot:'Es hora de responder',title:'Seguimiento Semanal de Leads',subtitle:'Leads recientes agrupados por semana de entrada. Marca el estado de cada contacto, sigue el termómetro y prioriza el seguimiento.',upd:'Última actualización',
       st_leads:'Leads',st_nc:'Sin contacto',st_nc_m:'ningún intento',st_fu:'Para seguimiento',st_fu_m:'abiertos, sin intento hoy',st_est:'Presupuestos',st_est_m:'agendados, aún abiertos',st_closed:'Cerrados',all_leads:'todos los leads',of_total:'de {n} en total',pct_leads:'{p}% de los leads',
-      f_month:'Mes',f_week:'Semana',f_entered:'Entró',all:'Todos',last7:'Últimos 7 días',last15:'Últimos 15 días',last30:'Últimos 30 días',f_status:'Estado',s_nc:'Sin contacto',s_and:'En curso',s_est:'Presupuesto agendado',s_closed:'Cerrados',s_dead:'Descartados',f_fu:'Seguimiento',fu_only:'Solo disponibles para seguimiento',f_therm:'Termómetro',hot:'Caliente',warm:'Tibio',cold:'Frío',f_source:'Origen',f_service:'Servicio',f_tags:'Etiquetas',new_lead:'Nuevo lead',edit_list:'Editar lista',done_edit:'Terminar edición',
+      f_month:'Mes',f_week:'Semana',f_entered:'Entró',all:'Todos',last7:'Últimos 7 días',last15:'Últimos 15 días',last30:'Últimos 30 días',f_status:'Estado',s_nc:'Sin contacto',s_and:'En curso',s_est:'Presupuestos abiertos',s_closed:'Cerrados',s_dead:'Descartados',f_fu:'Seguimiento',fu_only:'Solo disponibles para seguimiento',f_therm:'Termómetro',hot:'Caliente',warm:'Tibio',cold:'Frío',f_source:'Origen',f_service:'Servicio',f_tags:'Etiquetas',new_lead:'Nuevo lead',edit_list:'Editar lista',done_edit:'Terminar edición',
       a_name:'Nombre',a_tel:'Teléfono',a_date:'Fecha de entrada',a_timing:'Plazo',a_temp:'Temperatura inicial',a_noscore:'Sin puntaje',a_zip:'Código postal / ciudad',a_tags:'Etiquetas (separa por coma)',a_obs:'Observación',a_add:'Agregar lead',a_again:'Agregar de todos modos',cancel:'Cancelar',a_dup:'Ya existe un lead parecido: {l}. Haz clic de nuevo para agregarlo de todos modos.',a_added:'{n} agregado.',a_fail:'No se pudo guardar {n}. Puede que tengas acceso de solo lectura.',need_claude:'Abre esta página en Claude, con la cuenta conectada, para guardar cambios.',
       lg_hot:'Caliente (75+)',lg_warm:'Tibio (45 a 74)',lg_cold:'Frío (hasta 44)',lg_est:'Verde claro: presupuesto agendado',lg_won:'Verde oscuro: cerró',lg_count:'Cuenta regresiva: prioridad hasta 15 días desde la entrada, luego ventana de 30.',loading:'Cargando los leads…',footnote:'Leads cargados desde el grupo de WhatsApp, el CRM y QuickBooks. El termómetro combina el puntaje de la alerta, cuánto hace que entró el lead y el estado marcado. Marcar un estado registra la fecha del intento (y del contacto, cuando hubo respuesta).',
       empty_filter:'Ningún lead en este filtro.',empty_period:'Ningún lead en este período o filtro.',empty_all:'Aún no hay leads. Usa “Nuevo lead” para registrar el primero.',open_in_claude:'Abre esta página en Claude para cargar los leads.',sign_in:'Entra a tu cuenta de Claude para cargar los leads.',conn_lost:'Se perdió la conexión con los datos. Recarga la página.',
@@ -291,10 +304,10 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       won_big:'¡Cerró!',won_sub:'Pide la reseña y la recomendación',closed_on:'Cerrado el {d}',closed_:'Cerrado',dead_:'Descartado',c15:'Prioridad: faltan {n} días de la ventana de 15',c15_1:'Prioridad: falta 1 día de la ventana de 15',c30:'Ventana de 30: faltan {n} días',c30_1:'Ventana de 30: falta 1 día',cout:'Fuera de la ventana de 30 días ({n} d)',age_d:'{n} d',age_today:'entró hoy',no_date:'sin fecha',
       sug_btn:'Sugerencia de seguimiento',sug_close:'Cerrar sugerencia',sug_sms:'Texto (SMS)',sug_call:'Guion de llamada',sug_refl:'Mini reflexión',sug_hint:'El texto va en inglés, listo para enviar al lead. El guion y la reflexión usan el contexto de este lead.',copy:'Copiar',copied:'Copiado',sms_open:'Abrir en Mensajes',sms_nophone:'Sin teléfono para abrir el SMS',sug_ai:'Generar con Claude',sug_ai_wait:'Generando…',sug_ai_fail:'No se pudo generar ahora. La sugerencia lista sigue arriba.',sug_ai_tag:'Generado por Claude con el contexto del lead.',
       ctx_tab:'Dame contexto',ctx_hint:'Escribe lo que sabes de este lead (qué hablaron, objeción, plazo, presupuesto). El plan y la generación de Claude lo usan.',ctx_save:'Guardar contexto',ctx_saved:'Contexto guardado.',ctx_yours:'Tu contexto: ',
-      e_tel:'Teléfono',e_save_tel:'Guardar teléfono',e_zip:'Código postal / ciudad',e_save_zip:'Guardar código',e_val:'Valor ($)',e_est:'Nº de presupuesto',e_inv:'Nº de factura',e_save_val:'Guardar valor',e_save_dates:'Guardar fechas',e_save_tags:'Guardar etiquetas',e_tags_ph:'Etiquetas separadas por coma',e_obs:'Observación',e_save_obs:'Guardar observación',remove:'Eliminar',confirm_rm:'Confirmar eliminación',save_fail:'No se pudo guardar el cambio de {n}. Puede que tengas acceso de solo lectura.',rm_fail:'No se pudo eliminar {n}. Puede que tengas acceso de solo lectura.'},
+      e_tel:'Teléfono',e_save_tel:'Guardar teléfono',e_zip:'Código postal / ciudad',e_save_zip:'Guardar código',e_val:'Valor ($)',e_est:'Nº de presupuesto',e_inv:'Nº de factura',e_save_val:'Guardar valor',e_save_dates:'Guardar fechas',e_save_tags:'Guardar etiquetas',e_tags_ph:'Etiquetas separadas por coma',e_obs:'Observación',e_save_obs:'Guardar observación',remove:'Eliminar',confirm_rm:'Confirmar eliminación',save_fail:'No se pudo guardar el cambio de {n}. Puede que tengas acceso de solo lectura.',rm_fail:'No se pudo eliminar {n}. Puede que tengas acceso de solo lectura.',f_est:'Presupuestos',est_only:'Solo presupuestos abiertos',v_visit:'Visita: ',v_none:'no agendada',v_in:'(en {n} días)',v_in1:'(mañana)',v_today:'(hoy)',v_past:'(hace {n} días)',v_sent:'Presupuesto enviado: ',v_notsent:'no enviado',v_fu:'Seguimiento pos-presupuesto: ',v_fu_none:'ninguno aún',v_next:'Próximo seguimiento: ',v_fu_btn:'Seguimiento hecho hoy',v_msg:'Mensaje listo',e_visit:'Fecha de la visita',e_sent:'Presupuesto enviado el',e_fu:'Último seguimiento pos-presupuesto',e_next:'Próximo seguimiento',e_save_est:'Guardar fechas del presupuesto'},
     en:{mascot:'Time to reply',title:'Weekly Lead Follow-up',subtitle:'Recent leads grouped by the week they came in. Tick the outcome of each contact, watch the thermometer and prioritize follow-up.',upd:'Last updated',
       st_leads:'Leads',st_nc:'No contact',st_nc_m:'no attempt yet',st_fu:'Follow-up due',st_fu_m:'open, no attempt today',st_est:'Estimates',st_est_m:'booked, still open',st_closed:'Closed',all_leads:'all leads',of_total:'of {n} total',pct_leads:'{p}% of leads',
-      f_month:'Month',f_week:'Week',f_entered:'Came in',all:'All',last7:'Last 7 days',last15:'Last 15 days',last30:'Last 30 days',f_status:'Status',s_nc:'No contact',s_and:'In progress',s_est:'Estimate booked',s_closed:'Closed',s_dead:'Discarded',f_fu:'Follow-up',fu_only:'Only due for follow-up',f_therm:'Thermometer',hot:'Hot',warm:'Warm',cold:'Cold',f_source:'Source',f_service:'Service',f_tags:'Tags',new_lead:'New lead',edit_list:'Edit list',done_edit:'Done editing',
+      f_month:'Month',f_week:'Week',f_entered:'Came in',all:'All',last7:'Last 7 days',last15:'Last 15 days',last30:'Last 30 days',f_status:'Status',s_nc:'No contact',s_and:'In progress',s_est:'Open estimates',s_closed:'Closed',s_dead:'Discarded',f_fu:'Follow-up',fu_only:'Only due for follow-up',f_therm:'Thermometer',hot:'Hot',warm:'Warm',cold:'Cold',f_source:'Source',f_service:'Service',f_tags:'Tags',new_lead:'New lead',edit_list:'Edit list',done_edit:'Done editing',
       a_name:'Name',a_tel:'Phone',a_date:'Date received',a_timing:'Timeline',a_temp:'Initial temperature',a_noscore:'No score',a_zip:'ZIP / city',a_tags:'Tags (comma separated)',a_obs:'Notes',a_add:'Add lead',a_again:'Add anyway',cancel:'Cancel',a_dup:'A similar lead already exists: {l}. Click again to add anyway.',a_added:'{n} added.',a_fail:'Could not save {n}. You may have read-only access.',need_claude:'Open this page in Claude, signed in, to save changes.',
       lg_hot:'Hot (75+)',lg_warm:'Warm (45 to 74)',lg_cold:'Cold (up to 44)',lg_est:'Light green: estimate booked',lg_won:'Dark green: closed',lg_count:'Countdown: priority for 15 days after entry, then a 30-day window.',loading:'Loading leads…',footnote:'Leads come from the WhatsApp group, the CRM and QuickBooks. The thermometer combines the alert score, how long ago the lead came in and the outcome ticked. Ticking an outcome records the attempt date (and the contact date when the lead answered).',
       empty_filter:'No leads match this filter.',empty_period:'No leads in this period or filter.',empty_all:'No leads yet. Use “New lead” to add the first one.',open_in_claude:'Open this page in Claude to load the leads.',sign_in:'Sign in to Claude to load the leads.',conn_lost:'Lost connection to the data. Reload the page.',
@@ -304,14 +317,14 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       won_big:'Closed!',won_sub:'Ask for the review and a referral',closed_on:'Closed on {d}',closed_:'Closed',dead_:'Discarded',c15:'Priority: {n} days left in the 15-day window',c15_1:'Priority: 1 day left in the 15-day window',c30:'30-day window: {n} days left',c30_1:'30-day window: 1 day left',cout:'Past the 30-day window ({n} d)',age_d:'{n} d',age_today:'came in today',no_date:'no date',
       sug_btn:'Follow-up suggestion',sug_close:'Close suggestion',sug_sms:'Text (SMS)',sug_call:'Call script',sug_refl:'Quick take',sug_hint:'The text is in English, ready to send to the lead. The script and the take use this lead’s context.',copy:'Copy',copied:'Copied',sms_open:'Open in Messages',sms_nophone:'No phone number to open SMS',sug_ai:'Generate with Claude',sug_ai_wait:'Generating…',sug_ai_fail:'Could not generate right now. The ready-made suggestion is still above.',sug_ai_tag:'Generated by Claude from the lead’s context.',
       ctx_tab:'Give me context',ctx_hint:'Write what you know about this lead (what you discussed, objection, timing, budget). The plan and Claude’s generation use it.',ctx_save:'Save context',ctx_saved:'Context saved.',ctx_yours:'Your context: ',
-      e_tel:'Phone',e_save_tel:'Save phone',e_zip:'ZIP / city',e_save_zip:'Save ZIP',e_val:'Value ($)',e_est:'Estimate #',e_inv:'Invoice #',e_save_val:'Save value',e_save_dates:'Save dates',e_save_tags:'Save tags',e_tags_ph:'Comma-separated tags',e_obs:'Notes',e_save_obs:'Save notes',remove:'Remove',confirm_rm:'Confirm removal',save_fail:'Could not save the change for {n}. You may have read-only access.',rm_fail:'Could not remove {n}. You may have read-only access.'}
+      e_tel:'Phone',e_save_tel:'Save phone',e_zip:'ZIP / city',e_save_zip:'Save ZIP',e_val:'Value ($)',e_est:'Estimate #',e_inv:'Invoice #',e_save_val:'Save value',e_save_dates:'Save dates',e_save_tags:'Save tags',e_tags_ph:'Comma-separated tags',e_obs:'Notes',e_save_obs:'Save notes',remove:'Remove',confirm_rm:'Confirm removal',save_fail:'Could not save the change for {n}. You may have read-only access.',rm_fail:'Could not remove {n}. You may have read-only access.',f_est:'Estimates',est_only:'Only open estimates',v_visit:'Visit: ',v_none:'not booked',v_in:'(in {n} days)',v_in1:'(tomorrow)',v_today:'(today)',v_past:'({n} days ago)',v_sent:'Estimate sent: ',v_notsent:'not sent',v_fu:'Post-estimate follow-up: ',v_fu_none:'none yet',v_next:'Next follow-up: ',v_fu_btn:'Follow-up done today',v_msg:'Ready message',e_visit:'Visit date',e_sent:'Estimate sent on',e_fu:'Last post-estimate follow-up',e_next:'Next follow-up',e_save_est:'Save estimate dates'}
   };
   var lang='pt';
   try{var sl=localStorage.getItem('leads-lang');if(sl&&I18N[sl])lang=sl;}catch(e){}
   function t(k,v){var s=(I18N[lang]&&I18N[lang][k])||I18N.pt[k]||k;if(v)Object.keys(v).forEach(function(x){s=s.split('{'+x+'}').join(String(v[x]));});return s;}
   var DATE_LOCALE={pt:'pt-BR',es:'es-ES',en:'en-US'};
   var WON_IMG=document.getElementById('won-src')?document.getElementById('won-src').getAttribute('data-src'):'';
-  var rows=[], filter='all', meses=[], semanas=[], dias=0, fuOnly=false, temps=[], origens=[], servicos=[], tagsSel=[], db=null, sampler=null, editing=false, pending=null, adding=false, dupOk=false, openSug={}, openCtx={}, aiSug={}, updISO='';
+  var rows=[], filter='all', meses=[], semanas=[], dias=0, fuOnly=false, estOnly=false, temps=[], origens=[], servicos=[], tagsSel=[], db=null, sampler=null, editing=false, pending=null, adding=false, dupOk=false, openSug={}, openCtx={}, aiSug={}, updISO='';
   var mesKey='', semKey='', oriKey='', serKey='', tagKey='';
   var list=document.getElementById('list'), msg=document.getElementById('msg');
   var PARECER=[
@@ -361,16 +374,20 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     var cls=!open?'off':(n<=2?'ok':(n<=7?'hot':'bad'));
     return el('span','pill '+cls,dmyFull(s)+' '+(n===0?t('d_today'):(n===1?t('d_yest'):t('d_ago',{n:n}))));
   }
+  function isEst(r){return !!(r.parecer.marcouEstimate||r.estimate||r.dataEstimate||r.dataVisita);}
+  function isEstOpen(r){return isOpen(r)&&isEst(r);}
   function statusOf(r){
     if(r.parecer.fechou)return 'closed';if(r.parecer.descartado)return 'dead';
-    if(r.parecer.marcouEstimate)return 'est';if(hasContact(r))return 'and';return 'nc';
+    if(isEst(r))return 'est';if(hasContact(r))return 'and';return 'nc';
   }
+  function relDay(s){var n=daysSince(s);if(n==null)return '';if(n===0)return t('v_today');if(n<0)return n===-1?t('v_in1'):t('v_in',{n:-n});return t('v_past',{n:n});}
   function visible(){
     var corte='';
     if(dias){var dt=new Date();dt.setDate(dt.getDate()-dias);corte=iso(dt);}
     return rows.filter(function(r){
       return (!corte||String(r.data||'')>=corte)
         &&(!meses.length||meses.indexOf(String(r.data||'').slice(0,7))>=0)
+        &&(!estOnly||isEstOpen(r))
         &&(!semanas.length||semanas.indexOf(weekStart(r.data))>=0)
         &&(!temps.length||temps.indexOf(heatKey(heat(r)))>=0)
         &&(!origens.length||origens.indexOf(r.origem||'')>=0)
@@ -448,6 +465,33 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     ut.appendChild(document.createTextNode(t('last_try')));ut.appendChild(datePill(r.ultimaTentativa,t('none_f'),isOpen(r)));
     dates.appendChild(uc);dates.appendChild(ut);
     info.appendChild(dates);
+    if(isEst(r)){
+      var es=el('div','estrip');
+      var vv=el('span','');vv.appendChild(document.createTextNode(t('v_visit')));
+      var vn=daysSince(r.dataVisita);
+      vv.appendChild(el('span','pill '+(r.dataVisita?(vn!=null&&vn<=0?'hot':'off'):'bad'),r.dataVisita?dmyFull(r.dataVisita)+' '+relDay(r.dataVisita):t('v_none')));es.appendChild(vv);
+      var se=el('span','');se.appendChild(document.createTextNode(t('v_sent')));
+      var sn=daysSince(r.dataEstimate);
+      se.appendChild(el('span','pill '+(r.dataEstimate?(sn<=3?'ok':(sn<=10?'hot':'bad')):'off'),r.dataEstimate?dmyFull(r.dataEstimate)+' '+relDay(r.dataEstimate):t('v_notsent')));es.appendChild(se);
+      if(isOpen(r)){
+        var fe=el('span','');fe.appendChild(document.createTextNode(t('v_fu')));
+        var fnn=daysSince(r.dataFollowUpEst);
+        fe.appendChild(el('span','pill '+(r.dataFollowUpEst?(fnn<=3?'ok':(fnn<=7?'hot':'bad')):(r.dataEstimate&&sn>=2?'bad':'off')),r.dataFollowUpEst?dmyFull(r.dataFollowUpEst)+' '+relDay(r.dataFollowUpEst):t('v_fu_none')));es.appendChild(fe);
+        if(r.proxFollowUp){var nx=el('span','');nx.appendChild(document.createTextNode(t('v_next')));var nn=daysSince(r.proxFollowUp);nx.appendChild(el('span','pill '+(nn>=0?'bad':'mid'),dmyFull(r.proxFollowUp)+' '+relDay(r.proxFollowUp)));es.appendChild(nx);}
+        var fb2=el('button','fub',t('v_fu_btn'));fb2.type='button';fb2.id='fue-'+r.id;
+        fb2.addEventListener('click',function(){var d0=today();write(r,{dataFollowUpEst:d0,ultimaTentativa:d0},fb2);});
+        es.appendChild(fb2);
+        var sg=aiSug[r.id]&&aiSug[r.id].lang===lang&&aiSug[r.id].sms?aiSug[r.id]:buildSug(r);
+        var mg=el('div','msg'),mh=el('div','hd');mh.appendChild(el('span','lbl',t('v_msg')));
+        var ma=el('div','acts');var dg0=digits(r.tel);
+        if(dg0.length===10){var sl0=el('a','smslink',t('sms_open'));sl0.id='esms-'+r.id;sl0.href='sms:+1'+dg0+'?&body='+encodeURIComponent(sg.sms);ma.appendChild(sl0);}
+        ma.appendChild(copyBtn(function(){return sg.sms;},'ecp-'+r.id));
+        mh.appendChild(ma);mg.appendChild(mh);mg.appendChild(el('pre','',sg.sms));
+        if(dg0.length!==10)mg.appendChild(el('span','hint',t('sms_nophone')));
+        es.appendChild(mg);
+      }
+      info.appendChild(es);
+    }
     if(r.valor||r.invoice||r.estimate){
       var vl=el('div','valline');
       if(r.valor)vl.appendChild(el('span','val',money(r.valor)));
@@ -522,13 +566,14 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       sms=hi+'this is Flavio from USA VIP Floors. Whenever you are ready to revisit your '+sv+' project, I am here to help with a free estimate. Have a great week!';
       call=[pick('Não ligar agora. Deixar só a porta aberta por texto.','No llamar ahora. Dejar solo la puerta abierta por texto.','Do not call now. Leave the door open by text only.')];
       refl=[pick('Descartado. Um texto leve a cada 30 a 45 dias mantém o nome na memória sem incomodar.','Descartado. Un texto ligero cada 30 a 45 días mantiene el nombre presente sin molestar.','Discarded. A light text every 30 to 45 days keeps the name around without nagging.')];
-    }else if(p.marcouEstimate){
+    }else if(isEst(r)){
       sms=hi+'Flavio from USA VIP Floors here. Just following up on the estimate'+est+' I sent'+val+' for your '+sv+'. Any questions I can answer? If you would like to move forward, I can hold a date for you this month. Thank you!';
       call=[pick('Perguntar se recebeu e entendeu o estimate'+est+'.','Preguntar si recibió y entendió el presupuesto'+est+'.','Ask whether they received and understood the estimate'+est+'.'),
             pick('Descobrir a objeção real: preço, prazo, material ou outra cotação.','Descubrir la objeción real: precio, plazo, material u otra cotización.','Find the real objection: price, timing, material or another quote.'),
             pick('Oferecer uma data concreta para começar e lembrar que não pedimos pagamento adiantado.','Ofrecer una fecha concreta para empezar y recordar que no pedimos pago adelantado.','Offer a concrete start date and remind them there is no upfront payment.'),
             pick('Se houver margem, fechar com um ajuste pequeno em troca de decisão hoje.','Si hay margen, cerrar con un ajuste pequeño a cambio de decidir hoy.','If there is room, close with a small adjustment in exchange for a decision today.')];
-      refl=[pick('Estimate na mão há '+(daysSince(r.ultimoContato)||d)+' dias. É a fase que mais perde venda por silêncio: quem liga primeiro fecha.','Presupuesto entregado hace '+(daysSince(r.ultimoContato)||d)+' días. Es la etapa que más ventas pierde por silencio: quien llama primero cierra.','Estimate has been out for '+(daysSince(r.ultimoContato)||d)+' days. This is where most sales die of silence: whoever calls first closes.')];
+      var ed0=daysSince(r.dataEstimate);if(ed0==null)ed0=daysSince(r.ultimoContato)||d;
+      refl=[pick('Estimate na mão há '+ed0+' dias. É a fase que mais perde venda por silêncio: quem liga primeiro fecha.','Presupuesto entregado hace '+ed0+' días. Es la etapa que más ventas pierde por silencio: quien llama primero cierra.','Estimate has been out for '+ed0+' days. This is where most sales die of silence: whoever calls first closes.')];
     }else if(p.primeiroContato){
       sms=hi+'great talking with you about your '+sv+' project. Would you like me to stop by for a free estimate? I have openings this week and we do not ask for any payment upfront. Here is some of our recent work: https://usavipfloor.com/social/ Flavio, USA VIP Floors';
       call=[pick('Retomar a conversa anterior e confirmar metragem e prazo.','Retomar la conversación anterior y confirmar metraje y plazo.','Pick up the earlier conversation and confirm square footage and timing.'),
@@ -614,7 +659,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   function askClaude(r){
     if(!sampler)return;
     aiSug[r.id]={loading:true,lang:lang};render();
-    var ctx={nome:r.nome,telefone:r.tel?'sim':'não',entrou:r.data,dias_desde_entrada:daysSince(r.data),origem:r.origem,servico:r.servico,prazo:r.prazo,zip:r.zip,temperatura_alerta:r.temperatura,termometro:heat(r),tags:r.tags,parecer:Object.keys(r.parecer).filter(function(k){return r.parecer[k];}),ultimo_contato:r.ultimoContato||null,ultima_tentativa:r.ultimaTentativa||null,valor:r.valor||null,estimate:r.estimate||null,invoice:r.invoice||null,observacao_do_grupo:r.obs||'',contexto_do_flavio:r.contexto||''};
+    var ctx={nome:r.nome,telefone:r.tel?'sim':'não',entrou:r.data,dias_desde_entrada:daysSince(r.data),origem:r.origem,servico:r.servico,prazo:r.prazo,zip:r.zip,temperatura_alerta:r.temperatura,termometro:heat(r),tags:r.tags,parecer:Object.keys(r.parecer).filter(function(k){return r.parecer[k];}),ultimo_contato:r.ultimoContato||null,ultima_tentativa:r.ultimaTentativa||null,data_visita:r.dataVisita||null,data_envio_estimate:r.dataEstimate||null,ultimo_followup_pos_estimate:r.dataFollowUpEst||null,proximo_followup:r.proxFollowUp||null,valor:r.valor||null,estimate:r.estimate||null,invoice:r.invoice||null,observacao_do_grupo:r.obs||'',contexto_do_flavio:r.contexto||''};
     var langName={pt:'português do Brasil',es:'español',en:'English'}[lang];
     var prompt='Você é o assistente comercial da USA VIP Floors (instalação de pisos em Marietta, Georgia; dono: Flavio; foco em LVP, laminate, hardwood e escadas; não faz polimento nem lixamento; anúncio "no upfront payment"; portfólio em https://usavipfloor.com/social/). Com base no contexto deste lead, escreva uma sugestão de follow-up. Dê peso especial ao campo contexto_do_flavio, que é o que o dono sabe da conversa.\n\nContexto do lead (JSON): '+JSON.stringify(ctx)+'\n\nResponda SOMENTE com um JSON válido no formato {"sms":"...","call":["...","..."],"refl":["...","..."]}.\n- "sms": uma mensagem de texto curta (até 320 caracteres), em inglês americano, natural, assinada "Flavio, USA VIP Floors", adequada ao estágio atual do lead (sem contato, texto enviado, não atendeu, estimate enviado, fechado, descartado).\n- "call": 3 a 5 passos curtos de roteiro de ligação, em '+langName+', específicos para este lead.\n- "refl": 1 a 3 frases de reflexão estratégica em '+langName+', diretas, usando os dados do lead (dias desde a entrada, prazo, tags, observação, contexto, valor), dizendo o que fazer hoje e por quê.\nNão invente garantias, preços ou promoções além do que está no contexto.';
     sampler.json(prompt,{modelTier:'default'}).then(function(j){
@@ -644,6 +689,15 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     vs.addEventListener('click',function(){var v=Number(vi.value)||0,e=ei.value.trim(),n=ii.value.trim();if(v===(r.valor||0)&&e===(r.estimate||'')&&n===(r.invoice||''))return;write(r,{valor:v,estimate:e,invoice:n},vs);});
     fv.appendChild(vi);fv.appendChild(ei);fv.appendChild(ii);fv.appendChild(vs);
     ed.appendChild(fv);
+    var fe=el('div','form');
+    var ev=document.createElement('input');ev.type='date';ev.id='dv-'+r.id;ev.value=r.dataVisita||'';ev.setAttribute('aria-label',t('e_visit')+' '+r.nome);
+    var ee=document.createElement('input');ee.type='date';ee.id='de-'+r.id;ee.value=r.dataEstimate||'';ee.setAttribute('aria-label',t('e_sent')+' '+r.nome);
+    var ef=document.createElement('input');ef.type='date';ef.id='df-'+r.id;ef.value=r.dataFollowUpEst||'';ef.setAttribute('aria-label',t('e_fu')+' '+r.nome);
+    var en=document.createElement('input');en.type='date';en.id='dn-'+r.id;en.value=r.proxFollowUp||'';en.setAttribute('aria-label',t('e_next')+' '+r.nome);
+    var es2=el('button','cancel',t('e_save_est'));es2.type='button';es2.id='des-'+r.id;
+    es2.addEventListener('click',function(){var a=ev.value||'',b=ee.value||'',c=ef.value||'',d=en.value||'';if(a===(r.dataVisita||'')&&b===(r.dataEstimate||'')&&c===(r.dataFollowUpEst||'')&&d===(r.proxFollowUp||''))return;var patch={dataVisita:a,dataEstimate:b,dataFollowUpEst:c,proxFollowUp:d};if((a||b)&&!r.parecer.marcouEstimate){var np={};PARECER.forEach(function(x){np[x.k]=!!r.parecer[x.k];});np.marcouEstimate=true;patch.parecer=np;}write(r,patch,es2);});
+    fe.appendChild(el('span','lbl',t('e_visit')));fe.appendChild(ev);fe.appendChild(el('span','lbl',t('e_sent')));fe.appendChild(ee);fe.appendChild(el('span','lbl',t('e_fu')));fe.appendChild(ef);fe.appendChild(el('span','lbl',t('e_next')));fe.appendChild(en);fe.appendChild(es2);
+    ed.appendChild(fe);
     var f2=el('div','form');
     var d1=document.createElement('input');d1.type='date';d1.id='uc-'+r.id;d1.value=r.ultimoContato||'';d1.setAttribute('aria-label',t('last_contact')+r.nome);
     var d2=document.createElement('input');d2.type='date';d2.id='ut-'+r.id;d2.value=r.ultimaTentativa||'';d2.setAttribute('aria-label',t('last_try')+r.nome);
@@ -746,7 +800,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     }
     var data=document.getElementById('a-data').value||today();
     var id=slug(nome)+'-'+data;
-    var doc={nome:nome,tel:tel,email:'',zip:document.getElementById('a-zip').value.trim(),data:data,hora:'',origem:document.getElementById('a-origem').value,servico:document.getElementById('a-serv').value.trim(),prazo:document.getElementById('a-prazo').value.trim(),temperatura:document.getElementById('a-temp').value,tags:splitTags(document.getElementById('a-tags').value),parecer:{},ultimoContato:'',ultimaTentativa:'',obs:document.getElementById('a-obs').value.trim(),contexto:'',valor:0,estimate:'',invoice:'',crm:''};
+    var doc={nome:nome,tel:tel,email:'',zip:document.getElementById('a-zip').value.trim(),data:data,hora:'',origem:document.getElementById('a-origem').value,servico:document.getElementById('a-serv').value.trim(),prazo:document.getElementById('a-prazo').value.trim(),temperatura:document.getElementById('a-temp').value,tags:splitTags(document.getElementById('a-tags').value),parecer:{},ultimoContato:'',ultimaTentativa:'',obs:document.getElementById('a-obs').value.trim(),contexto:'',dataVisita:'',dataEstimate:'',dataFollowUpEst:'',proxFollowUp:'',valor:0,estimate:'',invoice:'',crm:''};
     var sb=document.getElementById('a-save');sb.disabled=true;
     db.doc('leads/'+id).set(doc).then(function(){
       sb.disabled=false;touch();
@@ -817,11 +871,13 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       render();
     });
   });
+  var estb=document.getElementById('est-btn');
+  estb.addEventListener('click',function(){estOnly=!estOnly;estb.setAttribute('aria-pressed',estOnly?'true':'false');render();});
   var fb=document.getElementById('fu-btn');
   fb.addEventListener('click',function(){fuOnly=!fuOnly;fb.setAttribute('aria-pressed',fuOnly?'true':'false');render();});
   function norm(s,x){
     var par={};PARECER.forEach(function(p){par[p.k]=!!(x.parecer&&x.parecer[p.k]);});
-    return {id:s.id,nome:x.nome||s.id,tel:x.tel?String(x.tel):'',email:x.email?String(x.email):'',zip:x.zip?String(x.zip):'',data:x.data?String(x.data):'',hora:x.hora?String(x.hora):'',origem:x.origem?String(x.origem):'',servico:x.servico?String(x.servico):'',prazo:x.prazo?String(x.prazo):'',temperatura:x.temperatura?String(x.temperatura):'',tags:Array.isArray(x.tags)?x.tags.map(String):[],parecer:par,ultimoContato:x.ultimoContato?String(x.ultimoContato):'',ultimaTentativa:x.ultimaTentativa?String(x.ultimaTentativa):'',obs:x.obs?String(x.obs):'',contexto:x.contexto?String(x.contexto):'',valor:Number(x.valor)||0,estimate:x.estimate?String(x.estimate):'',invoice:x.invoice?String(x.invoice):'',crm:x.crm&&/^https:\/\//.test(String(x.crm))?String(x.crm):''};
+    return {id:s.id,nome:x.nome||s.id,tel:x.tel?String(x.tel):'',email:x.email?String(x.email):'',zip:x.zip?String(x.zip):'',data:x.data?String(x.data):'',hora:x.hora?String(x.hora):'',origem:x.origem?String(x.origem):'',servico:x.servico?String(x.servico):'',prazo:x.prazo?String(x.prazo):'',temperatura:x.temperatura?String(x.temperatura):'',tags:Array.isArray(x.tags)?x.tags.map(String):[],parecer:par,ultimoContato:x.ultimoContato?String(x.ultimoContato):'',ultimaTentativa:x.ultimaTentativa?String(x.ultimaTentativa):'',obs:x.obs?String(x.obs):'',contexto:x.contexto?String(x.contexto):'',dataVisita:x.dataVisita?String(x.dataVisita):'',dataEstimate:x.dataEstimate?String(x.dataEstimate):'',dataFollowUpEst:x.dataFollowUpEst?String(x.dataFollowUpEst):'',proxFollowUp:x.proxFollowUp?String(x.proxFollowUp):'',valor:Number(x.valor)||0,estimate:x.estimate?String(x.estimate):'',invoice:x.invoice?String(x.invoice):'',crm:x.crm&&/^https:\/\//.test(String(x.crm))?String(x.crm):''};
   }
   function emptyBox(k){list.textContent='';var b=el('div','list');b.appendChild(el('div','empty',t(k)));list.appendChild(b);}
   function start(){
