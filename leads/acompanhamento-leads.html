@@ -101,17 +101,6 @@ h1{color:var(--brand-fg);font-family:var(--display);font-size:1.75rem;line-heigh
 .row.closed .jn::before{background:var(--won-line)}
 .row.closed .jn .dot{background:var(--won-bg)}
 .top{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;display:flex;flex-direction:column;gap:12px;background:var(--bg);padding-bottom:6px;margin-bottom:-6px}
-.top.shrunk .brand{padding:8px 14px;gap:10px 16px}
-.top.shrunk .brand img{height:36px}
-.top.shrunk .brand .logo{flex-direction:row;gap:8px}
-.top.shrunk .logo figcaption,.top.shrunk .brand .sub,.top.shrunk .lang{display:none}
-.top.shrunk .mascot{height:52px;border-width:1.5px}
-.top.shrunk h1{font-size:1.05rem}
-.top.shrunk .gbar{padding:6px 10px;gap:6px}
-.top.shrunk .gbar .gt{font-size:.82rem}
-.top.shrunk .gbar .gc{font-size:.72rem;padding:2px 7px}
-.top.shrunk .gbar .gtog{font-size:.74rem;padding:3px 9px}
-@media (prefers-reduced-motion:no-preference){.brand img,.brand,.gbar,h1{transition:all .18s ease}}
 .gbar{background:var(--brand-bg);color:var(--brand-fg);border-radius:12px;padding:10px 14px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;box-shadow:0 6px 18px rgba(11,21,51,.25)}
 .gbar .gt{font-family:var(--display);font-weight:700;font-size:.95rem;margin-right:4px;white-space:nowrap}
 .gbar .gc{font-size:.8rem;font-weight:600;border-radius:999px;padding:4px 10px;background:rgba(255,255,255,.1);border:1px solid var(--brand-muted);color:var(--brand-fg);white-space:nowrap}
@@ -260,7 +249,6 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 @media (max-width:520px){.stats{grid-template-columns:1fr 1fr}.par{grid-template-columns:1fr}}
 </style>
 <div class="wrap">
-  <div id="topsentinel" aria-hidden="true" style="height:1px;margin-bottom:-13px"></div>
   <div class="top" id="top">
   <header class="brand">
     <figure class="logo">
@@ -447,18 +435,6 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       src:[['acad','Oldroyd, McElheran and Elkington, "The Short Life of Online Sales Leads", Harvard Business Review, 2011 (copy in the BYU repository)','https://scholarsarchive.byu.edu/facpub/9711'],['acad','Oldroyd (MIT), Lead Response Management Study, 2007: 21× at 5 min vs 30 min (summary)','https://ainora.lt/blog/lead-response-time-statistics-every-study-2026'],['vendor','Velocify, The Ultimate Contact Strategy: 6 calls, voicemail, sequencing','https://www.slideshare.net/Velocify/the-ultimate-contact-strategy'],['vendor','Velocify, Text Messaging for Better Sales Conversion: text after contact +112%, before −39%','https://www.slideshare.net/slideshow/text-messaging-for-better-sales-conversion-25969164/25969164'],['survey','ACHR News / Clear Seas Research, 2024: how many quotes homeowners get','https://achrnews.com/articles/155337-how-to-be-the-first-and-last-quote-a-homeowner-gets'],['survey','ArcSite, survey of 1,000 homeowners: 95% get more than one bid','https://www.arcsite.com/blog/2022-homeowner-survey-report'],['gov','Georgia Public Service Commission, Telephone Solicitation: 8am–9pm and consent','https://psc.ga.gov/about-the-psc/consumer-corner/telephone/consumer-rights/telephone-solicitation/'],['gov','TCPA quiet hours and marketing messages (legal analysis, 2025)','https://www.privacyworld.blog/2025/03/new-class-action-threat-tcpa-quiet-hours-and-marketing-messages/']]}
   };
   var guideOpen=false;
-  (function(){
-    var topEl=document.getElementById('top'),sen=document.getElementById('topsentinel');
-    function check(){var r=sen.getBoundingClientRect();topEl.classList.toggle('shrunk',r.top<-60);}
-    if(window.IntersectionObserver){
-      var io=new IntersectionObserver(function(es){es.forEach(function(e){topEl.classList.toggle('shrunk',!e.isIntersecting&&e.boundingClientRect.top<0);});},{rootMargin:'-60px 0px 0px 0px',threshold:0});
-      io.observe(sen);
-    }
-    document.addEventListener('scroll',check,{passive:true,capture:true});
-    window.addEventListener('scroll',check,{passive:true});
-    window.addEventListener('resize',check);
-    check();
-  })();
   function buildGuide(){
     var g=GUIDE[lang]||GUIDE.pt,bar=document.getElementById('gbar'),body=document.getElementById('gbody');
     bar.textContent='';
