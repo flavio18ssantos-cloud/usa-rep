@@ -124,6 +124,14 @@ body.printing .bar,body.printing .stats,body.printing #gbody,body.printing .lege
 .gbar .gc b{color:var(--open)}
 .gbar .gtog{margin-left:auto;font:inherit;font-weight:700;font-size:.82rem;border-radius:999px;padding:5px 12px;cursor:pointer;background:var(--open);color:var(--open-fg);border:1px solid var(--open)}
 @media (max-width:640px){.gbar{padding:8px 10px}.gbar .gc{font-size:.74rem;padding:3px 8px}}
+/* Celular: só a barra de direcionamento comercial fica congelada, em uma linha que rola para o lado; o cabeçalho da marca rola junto com a página. */
+@media (max-width:640px){
+  .top{display:contents}
+  .gbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;padding-right:0}
+  .gbar::-webkit-scrollbar{display:none}
+  .gbar > *{flex:0 0 auto}
+  .gbar .gtog{position:sticky;right:0;margin-left:auto;box-shadow:-10px 0 0 var(--brand-bg),8px 0 0 var(--brand-bg)}
+}
 .gbody{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:18px}
 .gbody h3{margin:0;font-family:var(--display);font-size:1.1rem}
 .gbody h4{margin:0;font-family:var(--display);font-size:.95rem}
@@ -461,7 +469,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     bar.appendChild(el('span','gt',t('g_title')));
     g.chips.forEach(function(c){var x=el('span','gc');x.appendChild(el('b','',c[0]+' '));x.appendChild(document.createTextNode(c[1]));bar.appendChild(x);});
     var tg=el('button','gtog',guideOpen?t('g_less'):t('g_more'));tg.type='button';tg.id='gtog';tg.setAttribute('aria-expanded',guideOpen?'true':'false');tg.setAttribute('aria-controls','gbody');
-    tg.addEventListener('click',function(){guideOpen=!guideOpen;buildGuide();if(guideOpen){var topH=document.getElementById('top').offsetHeight;window.scrollTo({top:body.getBoundingClientRect().top+window.scrollY-topH-12,behavior:'smooth'});}});
+    tg.addEventListener('click',function(){guideOpen=!guideOpen;buildGuide();if(guideOpen){var topH=document.getElementById('top').offsetHeight||bar.offsetHeight;window.scrollTo({top:body.getBoundingClientRect().top+window.scrollY-topH-12,behavior:'smooth'});}});
     bar.appendChild(tg);
     body.hidden=!guideOpen;
     body.textContent='';
