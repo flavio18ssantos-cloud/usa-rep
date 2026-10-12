@@ -8,7 +8,7 @@
   --chip-l:91%; --chip-fl:26%; --brand-bg:#0b1533; --brand-fg:#ffffff; --brand-muted:#c3cdea;
   --closed:#08894a; --closed-fg:#ffffff; --closed-ink:#087a43; --closed-bg:#d9f7e6;
   --open:#ff8a1f; --open-fg:#2a1200; --open-ink:#c2500a; --open-bg:#ffe9d1;
-  --cold:#5b7fd8; --cold-bg:#e3ebff; --cold-ink:#2f4fa8;
+  --cold:#5b7fd8; --cold-bg:#e3ebff; --cold-ink:#2f4fa8; --danger-bg:#fde2e7; --danger-ink:#b3122c;
   --focus:#2b5cff; --therm-l:46%; --track:#e4eaf8;
   --display:"Bricolage Grotesque","Trebuchet MS",sans-serif;
   --body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -19,7 +19,7 @@
     --accent:#7da2ff; --accent-fg:#0a1330; --danger:#ff6b81; --danger-fg:#2a0008; --chip-l:22%; --chip-fl:84%;
     --closed:#2fd482; --closed-fg:#04200f; --closed-ink:#2fd482; --closed-bg:#0f3324;
     --open:#ffa040; --open-fg:#2a1200; --open-ink:#ffa040; --open-bg:#3d2608;
-    --cold:#7da2ff; --cold-bg:#15214a; --cold-ink:#a9c1ff;
+    --cold:#7da2ff; --cold-bg:#15214a; --cold-ink:#a9c1ff; --danger-bg:#3a0f18; --danger-ink:#ff8da0;
     --focus:#a9c1ff; --therm-l:58%; --track:#232c4d;
     color-scheme:dark;
   }
@@ -29,7 +29,7 @@
   --accent:#7da2ff; --accent-fg:#0a1330; --danger:#ff6b81; --danger-fg:#2a0008; --chip-l:22%; --chip-fl:84%;
   --closed:#2fd482; --closed-fg:#04200f; --closed-ink:#2fd482; --closed-bg:#0f3324;
   --open:#ffa040; --open-fg:#2a1200; --open-ink:#ffa040; --open-bg:#3d2608;
-  --cold:#7da2ff; --cold-bg:#15214a; --cold-ink:#a9c1ff;
+  --cold:#7da2ff; --cold-bg:#15214a; --cold-ink:#a9c1ff; --danger-bg:#3a0f18; --danger-ink:#ff8da0;
   --focus:#a9c1ff; --therm-l:58%; --track:#232c4d;
   color-scheme:dark;
 }
@@ -86,6 +86,12 @@ h1{color:var(--brand-fg);font-family:var(--display);font-size:1.75rem;line-heigh
 .chip.tmp{border:1.5px solid hsl(var(--h) 80% var(--therm-l));background:transparent;color:var(--fg)}
 .dates{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:.86rem;color:var(--muted);font-variant-numeric:tabular-nums}
 .dates b{color:var(--fg);font-weight:600}
+.pill{display:inline-block;border-radius:6px;padding:1px 8px;font-weight:700;font-size:.82rem;white-space:nowrap}
+.pill.hot{background:var(--open-bg);color:var(--open-ink)}
+.pill.mid{background:var(--cold-bg);color:var(--cold-ink)}
+.pill.ok{background:var(--closed-bg);color:var(--closed-ink)}
+.pill.bad{background:var(--danger-bg);color:var(--danger-ink)}
+.pill.off{background:var(--track);color:var(--muted)}
 .side{flex:0 1 330px;min-width:0;display:flex;flex-direction:column;gap:10px}
 @media (max-width:640px){.side{flex:1 1 100%}}
 .therm{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;font-size:.82rem;font-variant-numeric:tabular-nums}
@@ -259,6 +265,12 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   }
   function heatLabel(h){return h>=75?'Quente':(h>=45?'Morno':'Frio');}
   function heatHue(h){return Math.round(215-h*2.05);}
+  function datePill(s,none,open){
+    var n=daysSince(s);
+    if(n==null)return el('span','pill '+(open?'bad':'off'),none);
+    var cls=!open?'off':(n<=2?'ok':(n<=7?'hot':'bad'));
+    return el('span','pill '+cls,dmyFull(s)+(n===0?' (hoje)':(n===1?' (ontem)':' (há '+n+' dias)')));
+  }
   function statusOf(r){
     if(r.parecer.fechou)return 'closed';if(r.parecer.descartado)return 'dead';
     if(r.parecer.marcouEstimate)return 'est';if(hasContact(r))return 'and';return 'nc';
@@ -317,8 +329,12 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     if(r.email)head.appendChild(el('span','meta',r.email));
     info.appendChild(head);
     var d=daysSince(r.data);
-    var meta=['Entrou '+dmy(r.data)+(r.hora?' às '+r.hora:'')+(d!=null?' (há '+d+(d===1?' dia':' dias')+')':''),r.servico,r.prazo,r.zip].filter(Boolean).join(' · ');
-    info.appendChild(el('div','meta',meta));
+    var meta=el('div','meta');
+    meta.appendChild(document.createTextNode('Entrou '+dmy(r.data)+(r.hora?' às '+r.hora:'')+' '));
+    if(d!=null){var ap=el('span','pill '+(d<=3?'hot':(d<=15?'mid':'off')),d===0?'entrou hoje':'há '+d+(d===1?' dia':' dias'));meta.appendChild(ap);}
+    var rest=[r.servico,r.prazo,r.zip].filter(Boolean).join(' · ');
+    if(rest)meta.appendChild(document.createTextNode(' · '+rest));
+    info.appendChild(meta);
     var ch=el('div','chips');
     if(r.temperatura){var tc=el('span','chip tmp','Alerta: '+r.temperatura);tc.style.setProperty('--h',r.temperatura==='Quente'?10:(r.temperatura==='Morno'?40:215));ch.appendChild(tc);}
     if(r.origem){var oc=el('span','chip src',r.origem);oc.style.setProperty('--h',ORIG_H[r.origem]!=null?ORIG_H[r.origem]:hue(r.origem));ch.appendChild(oc);}
@@ -326,8 +342,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     if(ch.children.length)info.appendChild(ch);
     var dates=el('div','dates');
     var uc=el('span','',''),ut=el('span','','');
-    uc.appendChild(document.createTextNode('Último contato: '));uc.appendChild(el('b','',r.ultimoContato?dmyFull(r.ultimoContato):'nenhum'));
-    ut.appendChild(document.createTextNode('Última tentativa: '));ut.appendChild(el('b','',r.ultimaTentativa?dmyFull(r.ultimaTentativa)+(daysSince(r.ultimaTentativa)?' (há '+daysSince(r.ultimaTentativa)+' d)':' (hoje)'):'nenhuma'));
+    uc.appendChild(document.createTextNode('Último contato: '));uc.appendChild(datePill(r.ultimoContato,'nenhum',isOpen(r)));
+    ut.appendChild(document.createTextNode('Última tentativa: '));ut.appendChild(datePill(r.ultimaTentativa,'nenhuma',isOpen(r)));
     dates.appendChild(uc);dates.appendChild(ut);
     info.appendChild(dates);
     if(r.obs)info.appendChild(el('div','obs',r.obs));
