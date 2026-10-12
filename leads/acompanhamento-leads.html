@@ -161,6 +161,8 @@ h1{color:var(--brand-fg);font-family:var(--display);font-size:1.75rem;line-heigh
 .row.closed .therm .tr{background:rgba(255,255,255,.18)}
 .row.closed .count.ok{background:var(--won-fg);color:var(--won-bg)}
 .row.dead{opacity:.62}
+.row.lost{background:var(--danger-bg)}
+.row.lost .name{text-decoration:line-through;text-decoration-color:var(--danger)}
 .won{display:flex;align-items:center;gap:10px}
 .won{flex-wrap:wrap}
 .won img{height:170px;width:auto;max-width:100%;border-radius:12px;border:3px solid var(--won-muted);box-shadow:0 6px 16px rgba(0,0,0,.25)}
@@ -302,6 +304,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       <button id="f-and" data-f="and" aria-pressed="false" data-i18n="s_and">Em andamento</button>
       <button id="f-est" data-f="est" aria-pressed="false" data-i18n="s_est">Estimate marcado</button>
       <button id="f-closed" data-f="closed" aria-pressed="false" data-i18n="s_closed">Fechados</button>
+      <button id="f-lost" data-f="lost" aria-pressed="false" data-i18n="s_lost">Perdidos</button>
       <button id="f-dead" data-f="dead" aria-pressed="false" data-i18n="s_dead">Descartados</button>
     </div>
     <div class="filters" role="group" aria-label="Follow-up">
@@ -359,7 +362,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       lg_hot:'Quente (75+)',lg_warm:'Morno (45 a 74)',lg_cold:'Frio (até 44)',lg_est:'Verde claro: estimate marcado',lg_won:'Verde escuro: fechou',lg_count:'Regressivo: prioridade até 15 dias da entrada, depois janela de 30.',loading:'Carregando os leads…',footnote:'Leads alimentados a partir do grupo do WhatsApp, do CRM e do QuickBooks. O termômetro combina o score do alerta, há quanto tempo o lead entrou e o parecer marcado. Marcar um parecer registra a data da tentativa (e do contato, quando houve resposta).',
       empty_filter:'Nenhum lead neste filtro.',empty_period:'Nenhum lead neste período ou filtro.',empty_all:'Nenhum lead carregado ainda. Use “Novo lead” para cadastrar o primeiro.',open_in_claude:'Abra esta página no Claude para carregar os leads.',sign_in:'Entre na sua conta do Claude para carregar os leads.',conn_lost:'A conexão com os dados caiu. Recarregue a página.',
       week_of:'Semana de {w}',week_n:'{n} leads · {f} para follow-up',week_1:'1 lead · {f} para follow-up',
-      p_naoAtendeu:'Não atendeu',p_textoEnviado:'Texto enviado',p_primeiroContato:'Primeiro contato feito',p_ligacaoNaoAtendeu:'Ligação feita, não me atendeu',p_marcouEstimate:'Marcou estimate',p_fechou:'Fechou',p_descartado:'Descartado / sem interesse',
+      p_naoAtendeu:'Não atendeu',p_textoEnviado:'Texto enviado',p_primeiroContato:'Primeiro contato feito',p_ligacaoNaoAtendeu:'Ligação feita, não me atendeu',p_marcouEstimate:'Marcou estimate',p_fechou:'Fechou',p_perdeu:'Fechou com outro',s_lost:'Perdidos',lost_:'Perdeu para concorrente',j_lost:'Fechou com outro',lost_n:'{n} perdidos',p_descartado:'Descartado / sem interesse',
       entered:'Entrou {d}',at:'às {h}',today_in:'entrou hoje',ago:'há {n} dias',ago1:'há 1 dia',no_phone:'sem telefone',alert:'Alerta: {t}',last_contact:'Último contato: ',last_try:'Última tentativa: ',none_m:'nenhum',none_f:'nenhuma',d_today:'(hoje)',d_yest:'(ontem)',d_ago:'(há {n} dias)',open_crm:'Abrir no CRM',no_invoice:'sem invoice ainda',invoice:'Invoice #{n}',estimate:'Estimate #{n}',
       won_big:'Fechou!',won_sub:'Pede o review e a indicação',closed_on:'Fechado em {d}',closed_:'Fechado',dead_:'Descartado',c15:'Prioridade: faltam {n} dias da janela de 15',c15_1:'Prioridade: falta 1 dia da janela de 15',c30:'Janela de 30: faltam {n} dias',c30_1:'Janela de 30: falta 1 dia',cout:'Fora da janela de 30 dias ({n} d)',age_d:'{n} d',age_today:'entrou hoje',no_date:'sem data',
       sug_btn:'Sugestão de follow-up',sug_close:'Fechar sugestão',sug_sms:'Texto (SMS)',sug_call:'Roteiro de ligação',sug_refl:'Mini reflexão',sug_hint:'O texto vai em inglês, pronto para mandar ao lead. Roteiro e reflexão usam o contexto deste lead.',copy:'Copiar',copied:'Copiado',sms_open:'Abrir no Mensagens',sms_nophone:'Sem telefone para abrir o SMS',sug_ai:'Gerar com a Claude',sug_ai_wait:'Gerando…',sug_ai_fail:'Não deu para gerar agora. A sugestão pronta continua acima.',sug_ai_tag:'Gerado pela Claude com o contexto do lead.',
@@ -372,7 +375,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       lg_hot:'Caliente (75+)',lg_warm:'Tibio (45 a 74)',lg_cold:'Frío (hasta 44)',lg_est:'Verde claro: presupuesto agendado',lg_won:'Verde oscuro: cerró',lg_count:'Cuenta regresiva: prioridad hasta 15 días desde la entrada, luego ventana de 30.',loading:'Cargando los leads…',footnote:'Leads cargados desde el grupo de WhatsApp, el CRM y QuickBooks. El termómetro combina el puntaje de la alerta, cuánto hace que entró el lead y el estado marcado. Marcar un estado registra la fecha del intento (y del contacto, cuando hubo respuesta).',
       empty_filter:'Ningún lead en este filtro.',empty_period:'Ningún lead en este período o filtro.',empty_all:'Aún no hay leads. Usa “Nuevo lead” para registrar el primero.',open_in_claude:'Abre esta página en Claude para cargar los leads.',sign_in:'Entra a tu cuenta de Claude para cargar los leads.',conn_lost:'Se perdió la conexión con los datos. Recarga la página.',
       week_of:'Semana del {w}',week_n:'{n} leads · {f} para seguimiento',week_1:'1 lead · {f} para seguimiento',
-      p_naoAtendeu:'No contestó',p_textoEnviado:'Texto enviado',p_primeiroContato:'Primer contacto hecho',p_ligacaoNaoAtendeu:'Llamé, no me contestó',p_marcouEstimate:'Agendó presupuesto',p_fechou:'Cerró',p_descartado:'Descartado / sin interés',
+      p_naoAtendeu:'No contestó',p_textoEnviado:'Texto enviado',p_primeiroContato:'Primer contacto hecho',p_ligacaoNaoAtendeu:'Llamé, no me contestó',p_marcouEstimate:'Agendó presupuesto',p_fechou:'Cerró',p_perdeu:'Cerró con otro',s_lost:'Perdidos',lost_:'Perdió ante un competidor',j_lost:'Cerró con otro',lost_n:'{n} perdidos',p_descartado:'Descartado / sin interés',
       entered:'Entró {d}',at:'a las {h}',today_in:'entró hoy',ago:'hace {n} días',ago1:'hace 1 día',no_phone:'sin teléfono',alert:'Alerta: {t}',last_contact:'Último contacto: ',last_try:'Último intento: ',none_m:'ninguno',none_f:'ninguno',d_today:'(hoy)',d_yest:'(ayer)',d_ago:'(hace {n} días)',open_crm:'Abrir en el CRM',no_invoice:'sin factura aún',invoice:'Factura #{n}',estimate:'Presupuesto #{n}',
       won_big:'¡Cerró!',won_sub:'Pide la reseña y la recomendación',closed_on:'Cerrado el {d}',closed_:'Cerrado',dead_:'Descartado',c15:'Prioridad: faltan {n} días de la ventana de 15',c15_1:'Prioridad: falta 1 día de la ventana de 15',c30:'Ventana de 30: faltan {n} días',c30_1:'Ventana de 30: falta 1 día',cout:'Fuera de la ventana de 30 días ({n} d)',age_d:'{n} d',age_today:'entró hoy',no_date:'sin fecha',
       sug_btn:'Sugerencia de seguimiento',sug_close:'Cerrar sugerencia',sug_sms:'Texto (SMS)',sug_call:'Guion de llamada',sug_refl:'Mini reflexión',sug_hint:'El texto va en inglés, listo para enviar al lead. El guion y la reflexión usan el contexto de este lead.',copy:'Copiar',copied:'Copiado',sms_open:'Abrir en Mensajes',sms_nophone:'Sin teléfono para abrir el SMS',sug_ai:'Generar con Claude',sug_ai_wait:'Generando…',sug_ai_fail:'No se pudo generar ahora. La sugerencia lista sigue arriba.',sug_ai_tag:'Generado por Claude con el contexto del lead.',
@@ -385,7 +388,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       lg_hot:'Hot (75+)',lg_warm:'Warm (45 to 74)',lg_cold:'Cold (up to 44)',lg_est:'Light green: estimate booked',lg_won:'Dark green: closed',lg_count:'Countdown: priority for 15 days after entry, then a 30-day window.',loading:'Loading leads…',footnote:'Leads come from the WhatsApp group, the CRM and QuickBooks. The thermometer combines the alert score, how long ago the lead came in and the outcome ticked. Ticking an outcome records the attempt date (and the contact date when the lead answered).',
       empty_filter:'No leads match this filter.',empty_period:'No leads in this period or filter.',empty_all:'No leads yet. Use “New lead” to add the first one.',open_in_claude:'Open this page in Claude to load the leads.',sign_in:'Sign in to Claude to load the leads.',conn_lost:'Lost connection to the data. Reload the page.',
       week_of:'Week of {w}',week_n:'{n} leads · {f} due for follow-up',week_1:'1 lead · {f} due for follow-up',
-      p_naoAtendeu:'No answer',p_textoEnviado:'Text sent',p_primeiroContato:'First contact made',p_ligacaoNaoAtendeu:'Called, no answer',p_marcouEstimate:'Estimate booked',p_fechou:'Closed',p_descartado:'Discarded / not interested',
+      p_naoAtendeu:'No answer',p_textoEnviado:'Text sent',p_primeiroContato:'First contact made',p_ligacaoNaoAtendeu:'Called, no answer',p_marcouEstimate:'Estimate booked',p_fechou:'Closed',p_perdeu:'Closed with someone else',s_lost:'Lost',lost_:'Lost to a competitor',j_lost:'Closed with someone else',lost_n:'{n} lost',p_descartado:'Discarded / not interested',
       entered:'Came in {d}',at:'at {h}',today_in:'came in today',ago:'{n} days ago',ago1:'1 day ago',no_phone:'no phone',alert:'Alert: {t}',last_contact:'Last contact: ',last_try:'Last attempt: ',none_m:'none',none_f:'none',d_today:'(today)',d_yest:'(yesterday)',d_ago:'({n} days ago)',open_crm:'Open in CRM',no_invoice:'no invoice yet',invoice:'Invoice #{n}',estimate:'Estimate #{n}',
       won_big:'Closed!',won_sub:'Ask for the review and a referral',closed_on:'Closed on {d}',closed_:'Closed',dead_:'Discarded',c15:'Priority: {n} days left in the 15-day window',c15_1:'Priority: 1 day left in the 15-day window',c30:'30-day window: {n} days left',c30_1:'30-day window: 1 day left',cout:'Past the 30-day window ({n} d)',age_d:'{n} d',age_today:'came in today',no_date:'no date',
       sug_btn:'Follow-up suggestion',sug_close:'Close suggestion',sug_sms:'Text (SMS)',sug_call:'Call script',sug_refl:'Quick take',sug_hint:'The text is in English, ready to send to the lead. The script and the take use this lead’s context.',copy:'Copy',copied:'Copied',sms_open:'Open in Messages',sms_nophone:'No phone number to open SMS',sug_ai:'Generate with Claude',sug_ai_wait:'Generating…',sug_ai_fail:'Could not generate right now. The ready-made suggestion is still above.',sug_ai_tag:'Generated by Claude from the lead’s context.',
@@ -490,6 +493,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     {k:'ligacaoNaoAtendeu',contact:false},
     {k:'marcouEstimate',contact:true,cls:'win'},
     {k:'fechou',contact:true,cls:'win'},
+    {k:'perdeu',contact:false,cls:'bad'},
     {k:'descartado',contact:false,cls:'bad'}
   ];
   var ORIG_H={'Facebook':255,'Site':140,'Landing page':170,'GMB (ligação)':45,'Ligação direta':20,'CRM':300,'Indicação':120};
@@ -507,12 +511,12 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   function weekStart(s){var d=parse(s);if(!d)return '';var wd=(d.getDay()+6)%7;d.setDate(d.getDate()-wd);return iso(d);}
   function weekLabel(ws){var d=parse(ws);if(!d)return t('no_date');var e=new Date(d);e.setDate(e.getDate()+6);return dmy(iso(d))+' – '+dmy(iso(e));}
   function digits(s){return String(s||'').replace(/\D/g,'').replace(/^1(?=\d{10}$)/,'');}
-  function isOpen(r){return !r.parecer.fechou&&!r.parecer.descartado;}
+  function isOpen(r){return !r.parecer.fechou&&!r.parecer.descartado&&!r.parecer.perdeu;}
   function hasContact(r){return PARECER.some(function(p){return r.parecer[p.k];})||!!r.ultimaTentativa||!!r.ultimoContato;}
   function followUp(r){return isOpen(r)&&r.ultimaTentativa!==today();}
   function heat(r){
     var p=r.parecer;
-    if(p.fechou)return 100;if(p.descartado)return 0;
+    if(p.fechou)return 100;if(p.descartado||p.perdeu)return 0;
     var h={Quente:70,Morno:50,Frio:30}[r.temperatura]||45;
     var d=daysSince(r.data);
     if(d==null)h+=0;else if(d<=3)h+=20;else if(d<=7)h+=10;else if(d<=15)h+=0;else if(d<=30)h-=12;else h-=25;
@@ -533,7 +537,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   function isEst(r){return !!(r.parecer.marcouEstimate||r.estimate||r.dataEstimate||r.dataVisita);}
   function isEstOpen(r){return isOpen(r)&&isEst(r);}
   function statusOf(r){
-    if(r.parecer.fechou)return 'closed';if(r.parecer.descartado)return 'dead';
+    if(r.parecer.fechou)return 'closed';if(r.parecer.perdeu)return 'lost';if(r.parecer.descartado)return 'dead';
     if(isEst(r))return 'est';if(hasContact(r))return 'and';return 'nc';
   }
   function relDay(s){var n=daysSince(s);if(n==null)return '';if(n===0)return t('v_today');if(n<0)return n===-1?t('v_in1'):t('v_in',{n:-n});return t('v_past',{n:n});}
@@ -566,14 +570,14 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   function render(){
     var inF=visible();
     var nc=0,fu=0,est=0,c=0,mc=0;
-    inF.forEach(function(r){var s=statusOf(r);if(s==='nc')nc++;if(s==='est')est++;if(s==='closed'){c++;mc+=r.valor||0;}if(followUp(r))fu++;});
+    var lost=0;inF.forEach(function(r){var s=statusOf(r);if(s==='nc')nc++;if(s==='est')est++;if(s==='lost')lost++;if(s==='closed'){c++;mc+=r.valor||0;}if(followUp(r))fu++;});
     document.getElementById('s-all').textContent=inF.length;
     document.getElementById('m-all').textContent=rows.length===inF.length?t('all_leads'):t('of_total',{n:rows.length});
     document.getElementById('s-nc').textContent=nc;
     document.getElementById('s-fu').textContent=fu;
     document.getElementById('s-est').textContent=est;
     document.getElementById('s-c').textContent=c;
-    document.getElementById('m-c').textContent=(mc?money(mc)+' · ':'')+t('pct_leads',{p:inF.length?Math.round(100*c/inF.length):0});
+    document.getElementById('m-c').textContent=(mc?money(mc)+' · ':'')+t('pct_leads',{p:inF.length?Math.round(100*c/inF.length):0})+(lost?' · '+t('lost_n',{n:lost}):'');
     var shown=inF.filter(function(r){return (filter==='all'||statusOf(r)===filter)&&(!fuOnly||followUp(r));});
     list.textContent='';
     if(!shown.length){
@@ -596,7 +600,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   }
   function rowEl(r){
     var st=statusOf(r);
-    var row=el('div','row'+(st==='closed'?' closed':'')+(st==='est'?' est':'')+(st==='dead'?' dead':''));
+    var row=el('div','row'+(st==='closed'?' closed':'')+(st==='est'?' est':'')+(st==='dead'?' dead':'')+(st==='lost'?' lost':''));
     var info=el('div','info');
     var head=el('div','head');
     head.appendChild(el('div','name',r.nome));
@@ -667,6 +671,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     side.appendChild(th);
     if(st==='closed')side.appendChild(el('span','count ok',r.ultimoContato?t('closed_on',{d:dmy(r.ultimoContato)}):t('closed_')));
     else if(st==='dead')side.appendChild(el('span','count p3',t('dead_')));
+    else if(st==='lost')side.appendChild(el('span','count p3',t('lost_')));
     else if(d!=null){
       if(d<15)side.appendChild(el('span','count p1',15-d===1?t('c15_1'):t('c15',{n:15-d})));
       else if(d<30)side.appendChild(el('span','count p2',30-d===1?t('c30_1'):t('c30',{n:30-d})));
@@ -700,7 +705,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       {k:'j_sent',date:r.dataEstimate,st:sent?'done':'pend'},
       {k:'j_reply',date:r.dataResposta,st:r.dataResposta?'done':(sent&&open&&sentD!=null&&sentD>=2?'over':'pend'),sub:(!r.dataResposta&&sent&&open&&sentD!=null&&sentD>=2)?t('j_noreply',{n:sentD}):''},
       {k:'j_fu',date:r.dataFollowUpEst,st:r.dataFollowUpEst?'done':(sent&&open&&sentD!=null&&sentD>=2?'over':'pend'),sub:(!r.dataFollowUpEst&&sent&&open&&sentD!=null&&sentD>=2)?t('j_nofu',{n:sentD}):''},
-      p.descartado?{k:'j_dead',date:r.ultimaTentativa,st:'dead'}:{k:'j_close',date:p.fechou?r.ultimoContato:'',st:p.fechou?'won':'pend'}
+      p.perdeu?{k:'j_lost',date:r.ultimaTentativa,st:'dead'}:(p.descartado?{k:'j_dead',date:r.ultimaTentativa,st:'dead'}:{k:'j_close',date:p.fechou?r.ultimoContato:'',st:p.fechou?'won':'pend'})
     ];
     if(open){for(var i=0;i<steps.length;i++){if(steps[i].st==='pend'){steps[i].st='next';break;}if(steps[i].st==='over')break;}}
     var wrap=el('div','jwrap'),jr=el('div','journey');jr.setAttribute('role','list');
@@ -734,6 +739,12 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
             pick('Pedir a avaliação no Google e, se fizer sentido, indicação de vizinho ou parente.','Pedir la reseña en Google y, si cabe, una recomendación a vecinos o familia.','Ask for the Google review and, when it fits, a neighbor or family referral.'),
             r.invoice?pick('Invoice #'+r.invoice+' já emitida: só confirmar se ficou tudo certo.','Factura #'+r.invoice+' ya emitida: solo confirmar que todo está en orden.','Invoice #'+r.invoice+' is out: just confirm everything is settled.'):pick('Sem invoice registrada: confirmar pagamento e emitir no QuickBooks.','Sin factura registrada: confirmar el pago y emitirla en QuickBooks.','No invoice on file: confirm payment and issue it in QuickBooks.')];
       refl=[pick('Lead fechado'+(r.valor?' em '+money(r.valor):'')+'. O follow-up agora é de pós-venda: review e indicação valem mais que qualquer anúncio.','Lead cerrado'+(r.valor?' por '+money(r.valor):'')+'. El seguimiento ahora es posventa: reseña y recomendación valen más que cualquier anuncio.','Closed lead'+(r.valor?' at '+money(r.valor):'')+'. Follow-up now is after-sales: a review and a referral beat any ad.')];
+    }else if(st==='lost'){
+      sms=hi+'Flavio from USA VIP Floors. Thank you for considering us for your '+sv+' project. If anything changes, or you ever need a second opinion or a repair, I am one text away. Wishing you a great project!';
+      call=[pick('Não insistir. Uma pergunta só, educada: o que pesou na escolha (preço, prazo, material)?','No insistir. Una sola pregunta, educada: ¿qué pesó en la decisión (precio, plazo, material)?','Do not push. One polite question only: what tipped the decision (price, timing, material)?'),
+            pick('Anotar o motivo na abinha de contexto deste lead.','Anotar el motivo en la pestaña de contexto de este lead.','Log the reason in this lead\'s context tab.'),
+            pick('Deixar a porta aberta para reparo, próxima área da casa ou indicação.','Dejar la puerta abierta para reparación, próxima área de la casa o recomendación.','Leave the door open for repairs, the next room or a referral.')];
+      refl=[pick('Perdido para concorrente. O motivo é o dado mais barato que existe para ajustar preço e abordagem: pergunte uma vez e registre. Reative em 60 a 90 dias.','Perdido ante un competidor. El motivo es el dato más barato para ajustar precio y enfoque: pregunta una vez y regístralo. Reactiva en 60 a 90 días.','Lost to a competitor. The reason is the cheapest data you can get to adjust price and pitch: ask once and log it. Reactivate in 60 to 90 days.')];
     }else if(st==='dead'){
       sms=hi+'this is Flavio from USA VIP Floors. Whenever you are ready to revisit your '+sv+' project, I am here to help with a free estimate. Have a great week!';
       call=[pick('Não ligar agora. Deixar só a porta aberta por texto.','No llamar ahora. Dejar solo la puerta abierta por texto.','Do not call now. Leave the door open by text only.')];
@@ -1016,7 +1027,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     var tk=Object.keys(ts).sort(function(a,b){return ts[b]-ts[a]||a.localeCompare(b);});
     k=tk.join('|');if(force||k!==tagKey){tagKey=k;tagsSel=tagsSel.filter(function(x){return tk.indexOf(x)>=0;});multi('tags','tg-',tk,function(x){return x;},function(){return tagsSel;},function(v){tagsSel=v;});}
   }
-  var FIDS=['f-all','f-nc','f-and','f-est','f-closed','f-dead'];
+  var FIDS=['f-all','f-nc','f-and','f-est','f-closed','f-lost','f-dead'];
   FIDS.forEach(function(id){
     var btn=document.getElementById(id);
     btn.addEventListener('click',function(){
