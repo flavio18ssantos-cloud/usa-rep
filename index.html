@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>USA Rep · Estimates</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">USA Rep · Estimates</div>
+    <nav class="tabs" role="tablist">
+      <button class="tab is-active" data-view="followup" role="tab">Follow-up</button>
+      <button class="tab" data-view="padrao" role="tab">Padrão</button>
+    </nav>
+    <div class="topbar-actions">
+      <button class="btn btn-primary" id="btn-novo">+ Novo estimate</button>
+      <button class="btn" id="btn-exportar" title="Baixar JSON com todos os estimates">Exportar</button>
+      <label class="btn" for="input-importar" title="Carregar JSON exportado">Importar</label>
+      <input type="file" id="input-importar" accept="application/json" hidden />
+    </div>
+  </header>
+
+  <!-- ===================== FOLLOW-UP (slim) ===================== -->
+  <section id="view-followup" class="view is-active">
+    <div class="toolbar">
+      <div class="toolbar-group">
+        <label class="switch">
+          <input type="checkbox" id="f-aberto" checked />
+          <span>Só em aberto</span>
+        </label>
+        <label class="field-inline">
+          <span>Últimos</span>
+          <select id="f-dias">
+            <option value="20" selected>20 dias</option>
+            <option value="7">7 dias</option>
+            <option value="30">30 dias</option>
+            <option value="60">60 dias</option>
+            <option value="0">todos</option>
+          </select>
+        </label>
+        <label class="field-inline">
+          <span>Ordenar</span>
+          <select id="f-ordem">
+            <option value="recente" selected>contato mais recente → mais antigo</option>
+            <option value="antigo">mais tempo sem contato primeiro</option>
+            <option value="valor">maior valor</option>
+          </select>
+        </label>
+      </div>
+      <div class="toolbar-group">
+        <input type="search" id="f-busca" placeholder="Buscar nome, cidade, contato…" />
+      </div>
+    </div>
+
+    <div class="legend">
+      <span class="pill pill-ok">até 2 dias</span>
+      <span class="pill pill-warn">3–6 dias sem contato</span>
+      <span class="pill pill-danger">7+ dias sem contato / agendamento atrasado</span>
+      <span class="pill pill-info">agendado (data futura)</span>
+      <span class="legend-sep"></span>
+      <span class="pill pill-muted">txt = mensagem · lig = ligação · vis = visita</span>
+    </div>
+
+    <ol id="lista-followup" class="slim-list" aria-live="polite"></ol>
+    <p id="followup-vazio" class="empty" hidden>Nenhum estimate nesse filtro.</p>
+  </section>
+
+  <!-- ===================== PADRÃO (completo) ===================== -->
+  <section id="view-padrao" class="view">
+    <div class="toolbar">
+      <div class="toolbar-group">
+        <label class="field-inline">
+          <span>Status</span>
+          <select id="p-status">
+            <option value="">todos</option>
+            <option value="aberto">em aberto</option>
+            <option value="fechou">fechou</option>
+            <option value="fechou_outro">fechou com outro</option>
+            <option value="desistiu">desistiu</option>
+          </select>
+        </label>
+      </div>
+      <div class="toolbar-group">
+        <input type="search" id="p-busca" placeholder="Buscar…" />
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="table" id="tabela-padrao">
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>Contato</th>
+            <th>Local</th>
+            <th>Serviço</th>
+            <th class="num">Valor</th>
+            <th>Enviado</th>
+            <th>Status</th>
+            <th>Último contato</th>
+            <th class="num">Dias</th>
+            <th>Agendado</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p id="padrao-vazio" class="empty" hidden>Nenhum estimate.</p>
+  </section>
+
+  <!-- ===================== MODAL: estimate (novo / editar) ===================== -->
+  <dialog id="dlg-estimate">
+    <form method="dialog" id="form-estimate" class="form">
+      <h2 id="dlg-estimate-titulo">Novo estimate</h2>
+      <input type="hidden" name="id" />
+      <div class="grid-2">
+        <label>Cliente <input name="cliente" required placeholder="Ex.: Johnson Residence" /></label>
+        <label>Contato (quem) <input name="contato" placeholder="Ex.: Mike Johnson" /></label>
+        <label>Telefone <input name="telefone" placeholder="(561) 555-0100" /></label>
+        <label>Local (onde) <input name="local" placeholder="Ex.: Boca Raton, FL" /></label>
+        <label>Serviço <input name="servico" placeholder="Ex.: Paver driveway 1,200 sqft" /></label>
+        <label>Valor (US$) <input name="valor" type="number" min="0" step="1" placeholder="0" /></label>
+        <label>Enviado em <input name="enviadoEm" type="date" required /></label>
+        <label>Status
+          <select name="status">
+            <option value="aberto">em aberto</option>
+            <option value="fechou">fechou</option>
+            <option value="fechou_outro">fechou com outro</option>
+            <option value="desistiu">desistiu</option>
+          </select>
+        </label>
+        <label>Agendado para (visita / estimate marcado) <input name="agendadoEm" type="date" /></label>
+      </div>
+      <label>Observações <textarea name="obs" rows="3" placeholder="Detalhes que não precisam aparecer no follow-up"></textarea></label>
+      <div class="form-actions">
+        <button type="button" class="btn btn-danger-ghost" id="btn-excluir" hidden>Excluir</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn" data-close>Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ===================== MODAL: registrar contato ===================== -->
+  <dialog id="dlg-contato">
+    <form method="dialog" id="form-contato" class="form">
+      <h2>Registrar contato</h2>
+      <p class="muted" id="dlg-contato-cliente"></p>
+      <input type="hidden" name="id" />
+      <div class="grid-2">
+        <label>Como foi
+          <select name="tipo">
+            <option value="txt">txt (mensagem)</option>
+            <option value="lig">ligação</option>
+            <option value="vis">visita</option>
+            <option value="email">e-mail</option>
+          </select>
+        </label>
+        <label>Quando <input name="data" type="date" required /></label>
+      </div>
+      <label>Resumo <input name="nota" placeholder="Ex.: disse que decide semana que vem" /></label>
+      <div class="grid-2">
+        <label>Resultado
+          <select name="status">
+            <option value="">continua em aberto</option>
+            <option value="fechou">fechou</option>
+            <option value="fechou_outro">fechou com outro</option>
+            <option value="desistiu">desistiu</option>
+          </select>
+        </label>
+        <label>Agendou para (opcional) <input name="agendadoEm" type="date" /></label>
+      </div>
+      <div class="form-actions">
+        <span class="spacer"></span>
+        <button type="button" class="btn" data-close>Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar contato</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ===================== MODAL: histórico ===================== -->
+  <dialog id="dlg-historico">
+    <div class="form">
+      <h2 id="dlg-historico-titulo">Histórico</h2>
+      <ol id="lista-historico" class="history"></ol>
+      <div class="form-actions">
+        <span class="spacer"></span>
+        <button type="button" class="btn" data-close>Fechar</button>
+      </div>
+    </div>
+  </dialog>
+
+  <template id="tpl-slim-item">
+    <li class="slim-item">
+      <div class="slim-main">
+        <div class="slim-line1">
+          <strong class="slim-nome"></strong>
+          <span class="slim-status pill"></span>
+        </div>
+        <div class="slim-line2">
+          <span class="slim-quem"></span>
+          <span class="dot">·</span>
+          <span class="slim-onde"></span>
+          <span class="dot">·</span>
+          <span class="slim-valor"></span>
+        </div>
+        <div class="slim-line3 muted">
+          <span class="slim-ultimo"></span>
+        </div>
+      </div>
+      <div class="slim-side">
+        <div class="slim-dias"><b class="slim-dias-n"></b><small>dias</small></div>
+        <div class="slim-actions">
+          <button class="btn btn-sm" data-act="txt" title="Registrar mensagem">txt</button>
+          <button class="btn btn-sm" data-act="lig" title="Registrar ligação">lig</button>
+          <button class="btn btn-sm btn-success" data-act="fechou" title="Fechou com a gente">✓ fechou</button>
+          <button class="btn btn-sm btn-ghost" data-act="mais" title="Mais opções">⋯</button>
+        </div>
+      </div>
+    </li>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
