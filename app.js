@@ -1,22 +1,23 @@
 /* USA Rep · Estimates
  * Duas telas (Follow-up slim e Padrão) sobre o MESMO armazenamento.
- * Qualquer mudança feita em uma reflete imediatamente na outra.
+ * - Publicado como artefato: dados no banco compartilhado do artefato (capacidade `db`),
+ *   ao vivo para quem estiver com a página aberta.
+ * - Aberto do repositório / sem banco: localStorage do navegador.
  */
 (() => {
   "use strict";
 
   const STORE_KEY = "usa-rep.estimates.v1";
+  const COLLECTION = "estimates";
 
   // ---------------------------------------------------------------- util
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
-  const hojeISO = () => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  };
+  const isoDe = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const hojeISO = () => isoDe(new Date());
   const parseISO = (iso) => {
-    if (!iso) return null;
+    if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
     const [y, m, d] = iso.split("-").map(Number);
     return new Date(y, m - 1, d);
   };
@@ -25,125 +26,203 @@
     if (!a || !b) return null;
     return Math.round((b - a) / 86400000);
   };
-  const fmtData = (iso) => {
-    const d = parseISO(iso);
-    return d ? d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) : "—";
-  };
-  const fmtDataLonga = (iso) => {
-    const d = parseISO(iso);
-    return d ? d.toLocaleDateString("pt-BR") : "—";
-  };
-  const fmtUSD = (n) =>
-    n == null || n === "" ? "—" : Number(n).toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+  const fmtData = (iso) => { const d = parseISO(iso); return d ? d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) : "—"; };
+  const fmtDataLonga = (iso) => { const d = parseISO(iso); return d ? d.toLocaleDateString("pt-BR") : "—"; };
+  const fmtUSD = (n) => (n == null || n === "" ? "—" : Number(n).toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }));
   const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
   const norm = (s) => (s || "").toString().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-  const STATUS_LABEL = {
-    aberto: "em aberto",
-    fechou: "fechou",
-    fechou_outro: "fechou c/ outro",
-    desistiu: "desistiu",
-  };
-  const STATUS_PILL = {
-    aberto: "pill-info",
-    fechou: "pill-ok",
-    fechou_outro: "pill-muted",
-    desistiu: "pill-muted",
-  };
+  const STATUS_LABEL = { aberto: "em aberto", fechou: "fechou", fechou_outro: "fechou c/ outro", desistiu: "desistiu" };
+  const STATUS_PILL = { aberto: "pill-info", fechou: "pill-ok", fechou_outro: "pill-muted", desistiu: "pill-muted" };
   const TIPO_LABEL = { txt: "txt", lig: "ligação", vis: "visita", email: "e-mail" };
 
-  // ---------------------------------------------------------------- store
-  /** @typedef {{ data: string, tipo: 'txt'|'lig'|'vis'|'email', nota?: string }} Contato */
-  /** @typedef {{
-   *   id: string, cliente: string, contato?: string, telefone?: string, local?: string,
-   *   servico?: string, valor?: number|null, enviadoEm: string,
-   *   status: 'aberto'|'fechou'|'fechou_outro'|'desistiu',
-   *   agendadoEm?: string|null, obs?: string, contatos: Contato[],
-   *   atualizadoEm: string
-   * }} Estimate */
+  let toastTimer = null;
+  function toast(msg) {
+    const t = $("#toast");
+    t.textContent = msg;
+    t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { t.hidden = true; }, 2600);
+  }
 
+  // ---------------------------------------------------------------- normalização
+  function normalizar(e) {
+    return {
+      id: e.id || uid(),
+      cliente: (e.cliente || "").toString(),
+      contato: e.contato || "",
+      telefone: e.telefone || "",
+      local: e.local || "",
+      servico: e.servico || "",
+      valor: e.valor == null || e.valor === "" ? null : Number(e.valor),
+      enviadoEm: e.enviadoEm || hojeISO(),
+      status: STATUS_LABEL[e.status] ? e.status : "aberto",
+      agendadoEm: e.agendadoEm || null,
+      obs: e.obs || "",
+      contatos: Array.isArray(e.contatos) ? e.contatos.map((c) => ({ data: c.data, tipo: c.tipo || "txt", nota: c.nota || "" })) : [],
+      atualizadoEm: e.atualizadoEm || new Date().toISOString(),
+    };
+  }
+
+  // ---------------------------------------------------------------- store (db do artefato ou localStorage)
   const store = {
-    /** @type {Estimate[]} */
     itens: [],
-    load() {
+    modo: "local",   // "db" | "local"
+    db: null,
+    somenteLeitura: false,
+
+    async init() {
+      let db = null;
+      try {
+        if (window.claude && typeof window.claude.use === "function") db = await window.claude.use("db");
+      } catch { db = null; }
+
+      if (db) {
+        this.db = db;
+        this.modo = "db";
+        try {
+          const user = await window.claude.use("user");
+          const pode = user ? await user.can("data.write") : null;
+          if (pode === false) this.setSomenteLeitura(true);
+        } catch { /* sem resposta: mantém controles; um set() recusado decide */ }
+        db.collection(COLLECTION).onSnapshot(
+          (snap) => {
+            this.itens = snap.docs.filter((d) => d.exists).map((d) => normalizar(d.data()));
+            render();
+            marcarSync(snap.metadata.fromCache ? "sincronizando…" : "compartilhado · ao vivo");
+          },
+          (err) => { marcarSync("sem conexão (" + err.code + ")"); },
+        );
+        marcarSync("conectando…");
+        return;
+      }
+
+      this.modo = "local";
       try {
         const raw = localStorage.getItem(STORE_KEY);
-        this.itens = raw ? JSON.parse(raw) : seed();
-      } catch {
-        this.itens = seed();
-      }
+        this.itens = raw ? JSON.parse(raw).map(normalizar) : seed();
+      } catch { this.itens = seed(); }
       if (!Array.isArray(this.itens)) this.itens = [];
-      this.save(false);
+      this.persistLocal();
+      marcarSync("só neste navegador");
+      render();
     },
-    save(notify = true) {
-      try { localStorage.setItem(STORE_KEY, JSON.stringify(this.itens)); } catch { /* sem storage: segue em memória */ }
-      if (notify) render();
+
+    setSomenteLeitura(v) {
+      this.somenteLeitura = v;
+      document.body.classList.toggle("readonly", v);
+      if (v) marcarSync("compartilhado · somente leitura");
     },
+
+    persistLocal() {
+      try { localStorage.setItem(STORE_KEY, JSON.stringify(this.itens)); } catch { /* segue em memória */ }
+    },
+
     get(id) { return this.itens.find((e) => e.id === id); },
-    upsert(e) {
+
+    async escrever(e) {
+      e = normalizar(e);
       e.atualizadoEm = new Date().toISOString();
+      if (this.modo === "db") {
+        try {
+          await this.db.doc(`${COLLECTION}/${e.id}`).set(e);
+        } catch (err) {
+          if (err && err.code === "invalid_argument") { this.setSomenteLeitura(true); toast("Você não tem permissão para alterar os dados."); }
+          else toast("Não consegui salvar (" + (err && err.code || "erro") + "). Tente de novo.");
+          return false;
+        }
+        return true;
+      }
       const i = this.itens.findIndex((x) => x.id === e.id);
       if (i >= 0) this.itens[i] = e; else this.itens.unshift(e);
-      this.save();
+      this.persistLocal();
+      render();
+      return true;
     },
-    remove(id) {
+
+    async remover(id) {
+      if (this.modo === "db") {
+        try { await this.db.doc(`${COLLECTION}/${id}`).delete(); }
+        catch (err) { toast("Não consegui excluir (" + (err && err.code || "erro") + ")."); return false; }
+        return true;
+      }
       this.itens = this.itens.filter((e) => e.id !== id);
-      this.save();
+      this.persistLocal();
+      render();
+      return true;
     },
-    registrarContato(id, contato, novoStatus, agendadoEm) {
-      const e = this.get(id);
+
+    async substituirTudo(lista) {
+      const novos = lista.map(normalizar);
+      if (this.modo === "db") {
+        const idsNovos = new Set(novos.map((e) => e.id));
+        for (const antigo of this.itens) if (!idsNovos.has(antigo.id)) await this.remover(antigo.id);
+        for (const e of novos) await this.escrever(e);
+        return;
+      }
+      this.itens = novos;
+      this.persistLocal();
+      render();
+    },
+
+    async registrarContato(id, contato, novoStatus, agendadoEm) {
+      const e = structuredClone(this.get(id));
       if (!e) return;
-      e.contatos = e.contatos || [];
       e.contatos.push(contato);
       e.contatos.sort((a, b) => (a.data < b.data ? -1 : a.data > b.data ? 1 : 0));
       if (novoStatus) e.status = novoStatus;
-      if (agendadoEm !== undefined) e.agendadoEm = agendadoEm || null;
-      // se o contato registrado já passou da data agendada, limpa o agendamento vencido
-      if (e.agendadoEm && contato.data >= e.agendadoEm && !agendadoEm) e.agendadoEm = null;
-      this.upsert(e);
+      if (agendadoEm) e.agendadoEm = agendadoEm;
+      else if (e.agendadoEm && contato.data >= e.agendadoEm) e.agendadoEm = null; // agendamento cumprido
+      if (e.status !== "aberto") e.agendadoEm = null;
+      await this.escrever(e);
     },
-    setStatus(id, status) {
-      const e = this.get(id);
+
+    async setStatus(id, status) {
+      const e = structuredClone(this.get(id));
       if (!e) return;
       e.status = status;
       if (status !== "aberto") e.agendadoEm = null;
-      this.upsert(e);
+      await this.escrever(e);
+      toast(`${e.cliente}: ${STATUS_LABEL[status]}`);
+    },
+
+    async agendar(id, data) {
+      const e = structuredClone(this.get(id));
+      if (!e) return;
+      e.agendadoEm = data || null;
+      if (data) e.status = "aberto";
+      await this.escrever(e);
+      toast(data ? `${e.cliente}: agendado ${fmtData(data)}` : `${e.cliente}: agendamento removido`);
     },
   };
 
-  // dados de exemplo só na primeira abertura (sem nada salvo)
+  function marcarSync(txt) { $("#sync-badge").textContent = txt; }
+
+  // dados de exemplo só no modo local, na primeira abertura
   function seed() {
-    const d = (n) => {
-      const x = new Date(); x.setDate(x.getDate() - n);
-      return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
-    };
+    const d = (n) => { const x = new Date(); x.setDate(x.getDate() - n); return isoDe(x); };
     return [
-      { id: uid(), cliente: "Johnson Residence", contato: "Mike Johnson", telefone: "(561) 555-0100", local: "Boca Raton, FL", servico: "Paver driveway 1,200 sqft", valor: 14800, enviadoEm: d(9), status: "aberto", agendadoEm: null, obs: "Quer começar antes do Thanksgiving.", contatos: [{ data: d(9), tipo: "vis", nota: "Visita e medição" }, { data: d(3), tipo: "txt", nota: "Mandei o estimate, disse que vai olhar com a esposa" }] },
-      { id: uid(), cliente: "Garcia Pool Deck", contato: "Ana Garcia", telefone: "(954) 555-0133", local: "Coral Springs, FL", servico: "Travertine pool deck", valor: 22500, enviadoEm: d(14), status: "aberto", agendadoEm: null, obs: "", contatos: [{ data: d(14), tipo: "lig", nota: "Primeira ligação" }, { data: d(8), tipo: "txt", nota: "Perguntou sobre cor do travertino" }] },
-      { id: uid(), cliente: "Smith Patio", contato: "Rob Smith", telefone: "(561) 555-0177", local: "Delray Beach, FL", servico: "Patio + fire pit", valor: 9800, enviadoEm: d(5), status: "aberto", agendadoEm: d(-4), obs: "", contatos: [{ data: d(5), tipo: "lig", nota: "Agendou visita pra semana que vem" }] },
-      { id: uid(), cliente: "Oliveira Walkway", contato: "Paulo Oliveira", telefone: "(305) 555-0199", local: "Pompano Beach, FL", servico: "Front walkway", valor: 4200, enviadoEm: d(12), status: "fechou_outro", agendadoEm: null, obs: "Fechou com concorrente por preço.", contatos: [{ data: d(12), tipo: "txt" }, { data: d(2), tipo: "lig", nota: "Fechou com outro" }] },
-      { id: uid(), cliente: "Miller Backyard", contato: "Sarah Miller", telefone: "(561) 555-0121", local: "Boynton Beach, FL", servico: "Backyard pavers + pergola", valor: 31000, enviadoEm: d(18), status: "fechou", agendadoEm: null, obs: "Depósito pago.", contatos: [{ data: d(18), tipo: "vis" }, { data: d(1), tipo: "lig", nota: "Fechou! Início dia 20" }] },
-      { id: uid(), cliente: "Brown Driveway", contato: "Tom Brown", telefone: "(954) 555-0150", local: "Parkland, FL", servico: "Driveway extension", valor: 7600, enviadoEm: d(26), status: "desistiu", agendadoEm: null, obs: "", contatos: [{ data: d(26), tipo: "txt" }, { data: d(15), tipo: "txt", nota: "Adiou pro ano que vem" }] },
-    ].map((e) => ({ ...e, atualizadoEm: new Date().toISOString() }));
+      { id: uid(), cliente: "Johnson Residence", contato: "Mike Johnson", telefone: "(561) 555-0100", local: "Boca Raton, FL", servico: "Paver driveway 1,200 sqft", valor: 14800, enviadoEm: d(9), status: "aberto", obs: "Exemplo. Quer começar antes do Thanksgiving.", contatos: [{ data: d(9), tipo: "vis", nota: "Visita e medição" }, { data: d(3), tipo: "txt", nota: "Mandei o estimate, disse que vai olhar com a esposa" }] },
+      { id: uid(), cliente: "Garcia Pool Deck", contato: "Ana Garcia", telefone: "(954) 555-0133", local: "Coral Springs, FL", servico: "Travertine pool deck", valor: 22500, enviadoEm: d(14), status: "aberto", obs: "Exemplo.", contatos: [{ data: d(14), tipo: "lig", nota: "Primeira ligação" }, { data: d(8), tipo: "txt", nota: "Perguntou sobre cor do travertino" }] },
+      { id: uid(), cliente: "Smith Patio", contato: "Rob Smith", telefone: "(561) 555-0177", local: "Delray Beach, FL", servico: "Patio + fire pit", valor: 9800, enviadoEm: d(5), status: "aberto", agendadoEm: d(-4), obs: "Exemplo.", contatos: [{ data: d(5), tipo: "lig", nota: "Agendou visita pra semana que vem" }] },
+      { id: uid(), cliente: "Oliveira Walkway", contato: "Paulo Oliveira", telefone: "(305) 555-0199", local: "Pompano Beach, FL", servico: "Front walkway", valor: 4200, enviadoEm: d(12), status: "fechou_outro", obs: "Exemplo. Fechou com concorrente por preço.", contatos: [{ data: d(12), tipo: "txt" }, { data: d(2), tipo: "lig", nota: "Fechou com outro" }] },
+      { id: uid(), cliente: "Miller Backyard", contato: "Sarah Miller", telefone: "(561) 555-0121", local: "Boynton Beach, FL", servico: "Backyard pavers + pergola", valor: 31000, enviadoEm: d(18), status: "fechou", obs: "Exemplo. Depósito pago.", contatos: [{ data: d(18), tipo: "vis" }, { data: d(1), tipo: "lig", nota: "Fechou! Início dia 20" }] },
+    ].map(normalizar);
   }
 
   // ---------------------------------------------------------------- derivados
   function ultimoContato(e) {
-    if (!e.contatos || !e.contatos.length) return null;
+    if (!e.contatos.length) return null;
     return e.contatos.reduce((m, c) => (!m || c.data > m.data ? c : m), null);
   }
   function diasSemContato(e) {
     const u = ultimoContato(e);
     return diasEntre(u ? u.data : e.enviadoEm);
   }
-  /** severidade do alerta no follow-up */
   function severidade(e) {
     if (e.status !== "aberto") return "closed";
-    if (e.agendadoEm) {
-      const dAg = diasEntre(e.agendadoEm); // negativo = futuro
-      if (dAg <= 0) return "info";       // agendado pra frente (ou hoje)
-      return "danger";                   // agendamento passou e ninguém atualizou
-    }
+    if (e.agendadoEm) return diasEntre(e.agendadoEm) <= 0 ? "info" : "danger";
     const d = diasSemContato(e);
     if (d == null) return "ok";
     if (d >= 7) return "danger";
@@ -151,7 +230,6 @@
     return "ok";
   }
   function dataReferencia(e) {
-    // data usada pelo filtro "últimos N dias": o evento mais recente do estimate
     const u = ultimoContato(e);
     return u && u.data > e.enviadoEm ? u.data : e.enviadoEm;
   }
@@ -169,7 +247,7 @@
     const ordem = $("#f-ordem").value;
     const q = norm($("#f-busca").value.trim());
 
-    let itens = store.itens.filter((e) => {
+    const itens = store.itens.filter((e) => {
       if (soAberto && e.status !== "aberto") return false;
       if (dias > 0) {
         const d = diasEntre(dataReferencia(e));
@@ -180,9 +258,9 @@
       return true;
     });
 
-    const sortDias = (a, b) => diasSemContato(a) - diasSemContato(b);
-    if (ordem === "recente") itens.sort(sortDias);
-    else if (ordem === "antigo") itens.sort((a, b) => -sortDias(a, b));
+    const porDias = (a, b) => diasSemContato(a) - diasSemContato(b);
+    if (ordem === "recente") itens.sort(porDias);
+    else if (ordem === "antigo") itens.sort((a, b) => -porDias(a, b));
     else if (ordem === "valor") itens.sort((a, b) => (b.valor || 0) - (a.valor || 0));
 
     elLista.innerHTML = "";
@@ -219,9 +297,8 @@
       const d = diasSemContato(e);
       $(".slim-dias-n", li).textContent = d == null ? "—" : d;
 
-      if (e.status !== "aberto") {
-        $$('[data-act="fechou"]', li).forEach((b) => (b.hidden = true));
-      }
+      $$(".slim-actions .btn", li).forEach((b) => b.classList.add("write-only"));
+      if (e.status !== "aberto") $('[data-act="fechou"]', li).hidden = true;
       elLista.appendChild(li);
     }
   }
@@ -231,41 +308,48 @@
     const li = ev.target.closest("li[data-id]");
     if (!li) return;
     const id = li.dataset.id;
-    if (!btn) { abrirEstimate(id); return; }
+    if (!btn) { abrirHistorico(id); return; }
+    ev.stopPropagation();
     const act = btn.dataset.act;
     if (act === "txt" || act === "lig") abrirContato(id, act);
-    else if (act === "fechou") { if (confirm("Marcar como FECHOU com a gente?")) store.setStatus(id, "fechou"); }
-    else if (act === "mais") menuMais(id, btn);
+    else if (act === "fechou") store.setStatus(id, "fechou");
+    else if (act === "mais") abrirMenu(id, btn);
   });
 
-  function menuMais(id, anchor) {
-    // menu simples via prompt de opções (sem dependências)
+  // ---------------------------------------------------------------- menu "mais"
+  const menu = $("#menu-mais");
+  let menuId = null;
+
+  function abrirMenu(id, anchor) {
+    menuId = id;
     const e = store.get(id);
-    const opcoes = [
-      ["1", "Registrar visita"],
-      ["2", "Agendar visita / estimate (data)"],
-      ["3", "Fechou com outro"],
-      ["4", "Desistiu"],
-      ["5", "Reabrir (em aberto)"],
-      ["6", "Ver histórico"],
-      ["7", "Editar tudo"],
-    ];
-    const r = prompt(`${e.cliente}\n\n${opcoes.map(([k, l]) => `${k} — ${l}`).join("\n")}\n\nDigite o número:`);
-    switch ((r || "").trim()) {
-      case "1": abrirContato(id, "vis"); break;
-      case "2": {
-        const dt = prompt("Agendado para (AAAA-MM-DD):", e.agendadoEm || hojeISO());
-        if (dt && /^\d{4}-\d{2}-\d{2}$/.test(dt)) { e.agendadoEm = dt; e.status = "aberto"; store.upsert(e); }
-        break;
-      }
-      case "3": store.setStatus(id, "fechou_outro"); break;
-      case "4": store.setStatus(id, "desistiu"); break;
-      case "5": store.setStatus(id, "aberto"); break;
-      case "6": abrirHistorico(id); break;
-      case "7": abrirEstimate(id); break;
-    }
-    anchor.blur();
+    $('[data-act="aberto"]', menu).hidden = e.status === "aberto";
+    $('[data-act="fechou"]', menu).hidden = e.status === "fechou";
+    menu.hidden = false;
+    const r = anchor.getBoundingClientRect();
+    const mw = menu.offsetWidth;
+    const left = Math.max(8, Math.min(window.scrollX + r.right - mw, window.scrollX + window.innerWidth - mw - 8));
+    menu.style.left = `${left}px`;
+    menu.style.top = `${window.scrollY + r.bottom + 6}px`;
+    $(".menu-item:not([hidden])", menu).focus();
   }
+  function fecharMenu() { menu.hidden = true; menuId = null; }
+
+  menu.addEventListener("click", (ev) => {
+    const b = ev.target.closest("button[data-act]");
+    if (!b || !menuId) return;
+    const id = menuId;
+    fecharMenu();
+    const act = b.dataset.act;
+    if (act === "vis") abrirContato(id, "vis");
+    else if (act === "agendar") abrirAgendar(id);
+    else if (act === "historico") abrirHistorico(id);
+    else if (act === "editar") abrirEstimate(id);
+    else if (STATUS_LABEL[act]) store.setStatus(id, act);
+  });
+  document.addEventListener("click", (ev) => { if (!menu.hidden && !menu.contains(ev.target)) fecharMenu(); });
+  document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") fecharMenu(); });
+  window.addEventListener("resize", fecharMenu);
 
   // ---------------------------------------------------------------- render: padrão
   function renderPadrao() {
@@ -273,11 +357,12 @@
     const q = norm($("#p-busca").value.trim());
     const tbody = $("#tabela-padrao tbody");
 
-    let itens = store.itens.filter((e) => (!st || e.status === st) && (!q || textoBusca(e).includes(q)));
+    const itens = store.itens.filter((e) => (!st || e.status === st) && (!q || textoBusca(e).includes(q)));
     itens.sort((a, b) => (a.enviadoEm < b.enviadoEm ? 1 : -1));
 
     tbody.innerHTML = "";
     $("#padrao-vazio").hidden = itens.length > 0;
+    $(".table-wrap").hidden = itens.length === 0;
 
     for (const e of itens) {
       const tr = document.createElement("tr");
@@ -290,19 +375,19 @@
       const d = diasSemContato(e);
       tr.innerHTML = `
         <td><strong>${esc(e.cliente)}</strong>${e.obs ? `<div class="obs">${esc(e.obs)}</div>` : ""}</td>
-        <td>${esc(e.contato || "—")}${e.telefone ? `<div class="muted">${esc(e.telefone)}</div>` : ""}</td>
+        <td>${esc(e.contato || "—")}${e.telefone ? `<div class="muted num">${esc(e.telefone)}</div>` : ""}</td>
         <td>${esc(e.local || "—")}</td>
         <td>${esc(e.servico || "—")}</td>
         <td class="num">${fmtUSD(e.valor)}</td>
-        <td>${fmtDataLonga(e.enviadoEm)}</td>
+        <td class="num">${fmtDataLonga(e.enviadoEm)}</td>
         <td><span class="pill ${STATUS_PILL[e.status] || "pill-muted"}">${esc(STATUS_LABEL[e.status] || e.status)}</span></td>
-        <td>${u ? `${esc(TIPO_LABEL[u.tipo] || u.tipo)} · ${fmtDataLonga(u.data)}${u.nota ? `<div class="muted">${esc(u.nota)}</div>` : ""}` : "<span class='muted'>—</span>"}</td>
+        <td>${u ? `${esc(TIPO_LABEL[u.tipo] || u.tipo)} · <span class="num">${fmtDataLonga(u.data)}</span>${u.nota ? `<div class="muted obs">${esc(u.nota)}</div>` : ""}` : "<span class='muted'>—</span>"}</td>
         <td class="num dias">${d == null ? "—" : d}</td>
         <td>${e.agendadoEm ? `<span class="pill ${diasEntre(e.agendadoEm) <= 0 ? "pill-info" : "pill-danger"}">${fmtDataLonga(e.agendadoEm)}</span>` : "<span class='muted'>—</span>"}</td>
         <td class="actions">
-          <button class="btn btn-sm" data-act="contato">+ contato</button>
+          <button class="btn btn-sm write-only" data-act="contato">+ contato</button>
           <button class="btn btn-sm btn-ghost" data-act="historico">histórico</button>
-          <button class="btn btn-sm btn-ghost" data-act="editar">editar</button>
+          <button class="btn btn-sm btn-ghost write-only" data-act="editar">editar</button>
         </td>`;
       tbody.appendChild(tr);
     }
@@ -318,10 +403,6 @@
     else if (btn.dataset.act === "editar") abrirEstimate(id);
   });
 
-  function esc(s) {
-    return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  }
-
   // ---------------------------------------------------------------- dialogs
   const dlgEstimate = $("#dlg-estimate");
   const formEstimate = $("#form-estimate");
@@ -331,21 +412,22 @@
     formEstimate.reset();
     $("#dlg-estimate-titulo").textContent = e ? "Editar estimate" : "Novo estimate";
     $("#btn-excluir").hidden = !e;
-    formEstimate.elements.id.value = e ? e.id : "";
-    formEstimate.elements.cliente.value = e?.cliente || "";
-    formEstimate.elements.contato.value = e?.contato || "";
-    formEstimate.elements.telefone.value = e?.telefone || "";
-    formEstimate.elements.local.value = e?.local || "";
-    formEstimate.elements.servico.value = e?.servico || "";
-    formEstimate.elements.valor.value = e?.valor ?? "";
-    formEstimate.elements.enviadoEm.value = e?.enviadoEm || hojeISO();
-    formEstimate.elements.status.value = e?.status || "aberto";
-    formEstimate.elements.agendadoEm.value = e?.agendadoEm || "";
-    formEstimate.elements.obs.value = e?.obs || "";
+    const f = formEstimate.elements;
+    f.id.value = e ? e.id : "";
+    f.cliente.value = e?.cliente || "";
+    f.contato.value = e?.contato || "";
+    f.telefone.value = e?.telefone || "";
+    f.local.value = e?.local || "";
+    f.servico.value = e?.servico || "";
+    f.valor.value = e?.valor ?? "";
+    f.enviadoEm.value = e?.enviadoEm || hojeISO();
+    f.status.value = e?.status || "aberto";
+    f.agendadoEm.value = e?.agendadoEm || "";
+    f.obs.value = e?.obs || "";
     dlgEstimate.showModal();
   }
 
-  formEstimate.addEventListener("submit", (ev) => {
+  formEstimate.addEventListener("submit", async (ev) => {
     ev.preventDefault();
     const f = formEstimate.elements;
     const existente = f.id.value ? store.get(f.id.value) : null;
@@ -359,19 +441,21 @@
       valor: f.valor.value === "" ? null : Number(f.valor.value),
       enviadoEm: f.enviadoEm.value,
       status: f.status.value,
-      agendadoEm: f.agendadoEm.value || null,
+      agendadoEm: f.status.value === "aberto" ? f.agendadoEm.value || null : null,
       obs: f.obs.value.trim(),
       contatos: existente?.contatos || [],
-      atualizadoEm: new Date().toISOString(),
     };
     if (!e.cliente) return;
-    store.upsert(e);
-    dlgEstimate.close();
+    if (await store.escrever(e)) { dlgEstimate.close(); toast(existente ? "Estimate atualizado" : "Estimate criado"); }
   });
 
   $("#btn-excluir").addEventListener("click", () => {
     const id = formEstimate.elements.id.value;
-    if (id && confirm("Excluir este estimate? Não dá pra desfazer.")) { store.remove(id); dlgEstimate.close(); }
+    const e = store.get(id);
+    if (!e) return;
+    confirmar("Excluir estimate", `Excluir "${e.cliente}"? Não dá pra desfazer.`, async () => {
+      if (await store.remover(id)) { dlgEstimate.close(); toast("Estimate excluído"); }
+    });
   });
 
   const dlgContato = $("#dlg-contato");
@@ -381,25 +465,49 @@
     const e = store.get(id);
     if (!e) return;
     formContato.reset();
-    formContato.elements.id.value = id;
-    formContato.elements.tipo.value = tipo;
-    formContato.elements.data.value = hojeISO();
-    formContato.elements.status.value = "";
-    formContato.elements.agendadoEm.value = "";
-    $("#dlg-contato-cliente").textContent = `${e.cliente}${e.contato ? ` · ${e.contato}` : ""}${e.local ? ` · ${e.local}` : ""}`;
+    const f = formContato.elements;
+    f.id.value = id;
+    f.tipo.value = tipo;
+    f.data.value = hojeISO();
+    f.status.value = "";
+    f.agendadoEm.value = "";
+    $("#dlg-contato-titulo").textContent = tipo === "lig" ? "Registrar ligação" : tipo === "vis" ? "Registrar visita" : "Registrar contato";
+    $("#dlg-contato-cliente").textContent = [e.cliente, e.contato, e.local].filter(Boolean).join(" · ");
     dlgContato.showModal();
   }
 
-  formContato.addEventListener("submit", (ev) => {
+  formContato.addEventListener("submit", async (ev) => {
     ev.preventDefault();
     const f = formContato.elements;
-    store.registrarContato(
+    await store.registrarContato(
       f.id.value,
       { data: f.data.value, tipo: f.tipo.value, nota: f.nota.value.trim() },
       f.status.value || null,
-      f.agendadoEm.value ? f.agendadoEm.value : undefined,
+      f.agendadoEm.value || null,
     );
     dlgContato.close();
+    toast("Contato registrado");
+  });
+
+  const dlgAgendar = $("#dlg-agendar");
+  const formAgendar = $("#form-agendar");
+  function abrirAgendar(id) {
+    const e = store.get(id);
+    if (!e) return;
+    formAgendar.elements.id.value = id;
+    formAgendar.elements.data.value = e.agendadoEm || hojeISO();
+    $("#btn-desagendar").hidden = !e.agendadoEm;
+    $("#dlg-agendar-cliente").textContent = [e.cliente, e.contato, e.local].filter(Boolean).join(" · ");
+    dlgAgendar.showModal();
+  }
+  formAgendar.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    await store.agendar(formAgendar.elements.id.value, formAgendar.elements.data.value);
+    dlgAgendar.close();
+  });
+  $("#btn-desagendar").addEventListener("click", async () => {
+    await store.agendar(formAgendar.elements.id.value, null);
+    dlgAgendar.close();
   });
 
   const dlgHistorico = $("#dlg-historico");
@@ -409,19 +517,33 @@
     $("#dlg-historico-titulo").textContent = `Histórico · ${e.cliente}`;
     const ol = $("#lista-historico");
     ol.innerHTML = "";
-    const lista = [...(e.contatos || [])].sort((a, b) => (a.data < b.data ? 1 : -1));
+    const lista = [...e.contatos].sort((a, b) => (a.data < b.data ? 1 : -1));
     if (!lista.length) ol.innerHTML = `<li><span class="h-data">—</span><span></span><span class="h-nota muted">Nenhum contato registrado.</span></li>`;
     for (const c of lista) {
       const li = document.createElement("li");
-      li.innerHTML = `<span class="h-data">${fmtDataLonga(c.data)}</span><span class="pill pill-muted">${esc(c.tipo)}</span><span class="h-nota">${esc(c.nota || "")}</span>`;
+      li.innerHTML = `<span class="h-data num">${fmtDataLonga(c.data)}</span><span class="pill pill-muted">${esc(c.tipo)}</span><span class="h-nota">${esc(c.nota || "")}</span>`;
       ol.appendChild(li);
     }
     dlgHistorico.showModal();
   }
 
+  const dlgConfirmar = $("#dlg-confirmar");
+  let confirmarCb = null;
+  function confirmar(titulo, texto, cb) {
+    $("#dlg-confirmar-titulo").textContent = titulo;
+    $("#dlg-confirmar-texto").textContent = texto;
+    confirmarCb = cb;
+    dlgConfirmar.showModal();
+  }
+  $("#btn-confirmar-ok").addEventListener("click", async () => {
+    const cb = confirmarCb; confirmarCb = null;
+    dlgConfirmar.close();
+    if (cb) await cb();
+  });
+
   $$("dialog [data-close]").forEach((b) => b.addEventListener("click", () => b.closest("dialog").close()));
 
-  // ---------------------------------------------------------------- tabs / filtros / import-export
+  // ---------------------------------------------------------------- abas / filtros / exportar-importar
   $$(".tab").forEach((t) =>
     t.addEventListener("click", () => {
       $$(".tab").forEach((x) => x.classList.toggle("is-active", x === t));
@@ -434,19 +556,24 @@
     if (v) $(`.tab[data-view="${v}"]`)?.click();
   } catch { /* ignore */ }
 
-  ["#f-aberto", "#f-dias", "#f-ordem", "#f-busca", "#p-status", "#p-busca"].forEach((sel) =>
-    $(sel).addEventListener("input", render),
-  );
+  ["#f-aberto", "#f-dias", "#f-ordem", "#f-busca", "#p-status", "#p-busca"].forEach((sel) => $(sel).addEventListener("input", render));
 
   $("#btn-novo").addEventListener("click", () => abrirEstimate(null));
+  $("#btn-novo").classList.add("write-only");
+  $('label[for="input-importar"]').classList.add("write-only");
 
-  $("#btn-exportar").addEventListener("click", () => {
-    const blob = new Blob([JSON.stringify(store.itens, null, 2)], { type: "application/json" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `estimates-${hojeISO()}.json`;
-    a.click();
-    URL.revokeObjectURL(a.href);
+  $("#btn-exportar").addEventListener("click", async () => {
+    const json = JSON.stringify(store.itens, null, 2);
+    try {
+      await navigator.clipboard.writeText(json);
+      toast(`JSON copiado (${store.itens.length} estimates)`);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = json; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      toast("Selecionado: use Ctrl/Cmd+C para copiar");
+      setTimeout(() => ta.remove(), 15000);
+    }
   });
 
   $("#input-importar").addEventListener("change", async (ev) => {
@@ -454,25 +581,27 @@
     if (!file) return;
     try {
       const dados = JSON.parse(await file.text());
-      if (!Array.isArray(dados)) throw new Error("formato inválido");
-      if (confirm(`Importar ${dados.length} estimates? Isso SUBSTITUI os dados atuais.`)) {
-        store.itens = dados.map((e) => ({ ...e, id: e.id || uid(), contatos: e.contatos || [], status: e.status || "aberto" }));
-        store.save();
-      }
+      if (!Array.isArray(dados)) throw new Error("o arquivo precisa ser uma lista de estimates");
+      confirmar("Importar estimates", `Importar ${dados.length} estimates? Isso substitui os dados atuais.`, async () => {
+        await store.substituirTudo(dados);
+        toast("Importado");
+      });
     } catch (err) {
-      alert("Não consegui ler o arquivo: " + err.message);
+      toast("Não consegui ler o arquivo: " + err.message);
     } finally {
       ev.target.value = "";
     }
   });
 
-  // outra aba do navegador alterou os dados → recarrega
+  // outra aba do navegador alterou os dados (modo local) → recarrega
   window.addEventListener("storage", (ev) => {
-    if (ev.key === STORE_KEY) { store.load(); render(); }
+    if (store.modo === "local" && ev.key === STORE_KEY) {
+      try { store.itens = JSON.parse(ev.newValue || "[]").map(normalizar); render(); } catch { /* ignore */ }
+    }
   });
 
   // ---------------------------------------------------------------- boot
   function render() { renderFollowup(); renderPadrao(); }
-  store.load();
   render();
+  store.init();
 })();

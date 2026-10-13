@@ -1,6 +1,6 @@
 # usa-rep · Estimates
 
-Acompanhamento de estimates em duas telas que usam o **mesmo** armazenamento (localStorage do navegador):
+Acompanhamento de estimates em duas telas que usam o **mesmo** armazenamento:
 
 | Tela | Pra quê |
 |---|---|
@@ -20,15 +20,18 @@ Marcar "fechou", "fechou com outro" ou "desistiu" em qualquer tela reflete na ou
   - azul: tem visita/estimate **agendado** pra frente (mostra a data e não entra em alerta)
 - Botões por linha: `txt`, `lig` (registra o contato de hoje), `✓ fechou`, `⋯` (visita, agendar data, fechou com outro, desistiu, reabrir, histórico, editar).
 
-## Dados
+## Onde ficam os dados
 
-- Ficam no navegador (localStorage). **Exportar** baixa um JSON; **Importar** restaura/substitui.
-- Na primeira abertura sem dados salvos, entram alguns exemplos para visualizar a tela. Apague-os ou importe os seus.
+- **Publicado como artefato (claude.ai):** no banco compartilhado do artefato. Quem abrir a página vê as mesmas informações, ao vivo. O selo no topo mostra "compartilhado · ao vivo".
+- **Aberto direto do repositório:** no localStorage do navegador (selo "só neste navegador"). Na primeira abertura entram exemplos marcados como "Exemplo"; apague-os ou importe os seus.
+- **Copiar JSON** copia todos os estimates; **Importar** substitui pelos de um arquivo JSON.
 
-## Rodar
+## Rodar / publicar
 
-É estático, sem build. Abra `index.html` direto no navegador ou sirva a pasta:
+Sem build para uso local: abra `index.html` ou sirva a pasta (`python3 -m http.server 8080`).
+
+Para gerar o arquivo único usado na publicação como artefato:
 
 ```
-python3 -m http.server 8080
+node scripts/build-artifact.mjs   # gera dist/artifact.html
 ```
