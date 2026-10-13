@@ -68,6 +68,7 @@
       crm: e.crm || "",
       proxFollowUp: e.proxFollowUp || null,
       fontes: Array.isArray(e.fontes) ? e.fontes : [],
+      followUp: !!e.followUp, // marcação manual "necessita follow-up"
       atualizadoEm: e.atualizadoEm || new Date().toISOString(),
     };
   }
@@ -194,6 +195,14 @@
       toast(`${e.cliente}: ${STATUS_LABEL[status]}`);
     },
 
+    async toggleFollow(id) {
+      const e = structuredClone(this.get(id));
+      if (!e) return;
+      e.followUp = !e.followUp;
+      await this.escrever(e);
+      toast(e.followUp ? `${e.cliente}: marcado como "necessita follow-up"` : `${e.cliente}: marcação removida`);
+    },
+
     async agendar(id, data) {
       const e = structuredClone(this.get(id));
       if (!e) return;
@@ -253,10 +262,12 @@
     const dias = Number($("#f-dias").value);
     const ordem = $("#f-ordem").value;
     const origemSel = $("#f-origem").value;
+    const soFollow = $("#f-follow").checked;
     const q = norm($("#f-busca").value.trim());
 
     const itens = store.itens.filter((e) => {
       if (soAberto && e.status !== "aberto") return false;
+      if (soFollow && !e.followUp) return false;
       if (origemSel && grupoOrigem(e) !== origemSel) return false;
       if (dias > 0) {
         const d = diasEntre(dataReferencia(e));
@@ -271,6 +282,8 @@
     if (ordem === "recente") itens.sort(porDias);
     else if (ordem === "antigo") itens.sort((a, b) => -porDias(a, b));
     else if (ordem === "valor") itens.sort((a, b) => (b.valor || 0) - (a.valor || 0));
+    // marcados "necessita follow-up" sempre no topo, mantendo a ordem escolhida entre eles
+    itens.sort((a, b) => (b.followUp ? 1 : 0) - (a.followUp ? 1 : 0));
 
     elLista.innerHTML = "";
     $("#followup-vazio").hidden = itens.length > 0;
@@ -281,6 +294,11 @@
       li.dataset.id = e.id;
       li.classList.add(`sev-${sev}`, `st-${e.status}`);
       if (e.status !== "aberto") li.classList.add("is-closed");
+      li.classList.toggle("is-follow", !!e.followUp);
+      $(".slim-follow", li).hidden = !e.followUp;
+      const bf = $('[data-act="follow"]', li);
+      bf.setAttribute("aria-pressed", e.followUp ? "true" : "false");
+      bf.textContent = e.followUp ? "⚑ Necessita follow-up" : "⚑ Necessita follow-up?";
 
       $(".slim-nome", li).textContent = e.cliente;
       $(".slim-ref", li).textContent = e.estimate ? `#${e.estimate}` : "lead";
@@ -421,6 +439,7 @@
     const act = btn.dataset.act;
     if (act === "txt" || act === "lig") abrirContato(id, act);
     else if (act === "fechou") store.setStatus(id, "fechou");
+    else if (act === "follow") store.toggleFollow(id);
     else if (act === "mais") abrirMenu(id, btn);
   });
 
@@ -488,7 +507,7 @@
         <td>${esc(e.servico || "—")}</td>
         <td class="num">${fmtUSD(e.valor)}</td>
         <td class="num">${fmtDataLonga(e.enviadoEm)}</td>
-        <td><span class="pill ${STATUS_PILL[e.status] || "pill-muted"}">${esc(STATUS_LABEL[e.status] || e.status)}</span></td>
+        <td><span class="pill ${STATUS_PILL[e.status] || "pill-muted"}">${esc(STATUS_LABEL[e.status] || e.status)}</span>${e.followUp ? ` <span class="pill pill-danger">⚑ follow-up</span>` : ""}</td>
         <td>${u ? `${esc(TIPO_LABEL[u.tipo] || u.tipo)} · <span class="num">${fmtDataLonga(u.data)}</span>${u.nota ? `<div class="muted obs">${esc(u.nota)}</div>` : ""}` : "<span class='muted'>—</span>"}</td>
         <td class="num dias">${d == null ? "—" : d}</td>
         <td>${e.agendadoEm ? `<span class="pill ${diasEntre(e.agendadoEm) <= 0 ? "pill-info" : "pill-danger"}">${fmtDataLonga(e.agendadoEm)}</span>` : "<span class='muted'>—</span>"}</td>
@@ -688,7 +707,7 @@
     if (v) $(`.tab[data-view="${v}"]`)?.click();
   } catch { /* ignore */ }
 
-  ["#f-aberto", "#f-dias", "#f-ordem", "#f-origem", "#f-busca", "#p-status", "#p-busca"].forEach((sel) => $(sel).addEventListener("input", render));
+  ["#f-aberto", "#f-follow", "#f-dias", "#f-ordem", "#f-origem", "#f-busca", "#p-status", "#p-busca"].forEach((sel) => $(sel).addEventListener("input", render));
 
   $("#btn-novo").addEventListener("click", () => abrirEstimate(null));
   $("#btn-novo").classList.add("write-only");

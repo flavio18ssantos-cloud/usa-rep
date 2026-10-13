@@ -34,6 +34,10 @@
           <input type="checkbox" id="f-aberto" checked />
           <span>Só em aberto</span>
         </label>
+        <label class="switch" for="f-follow">
+          <input type="checkbox" id="f-follow" />
+          <span class="follow-txt">Só "necessita follow-up"</span>
+        </label>
         <label class="field-inline" for="f-dias">
           <span>Últimos</span>
           <select id="f-dias">
@@ -275,6 +279,7 @@
           <span class="slim-ref num muted"></span>
           <span class="slim-status pill"></span>
           <span class="slim-origem pill"></span>
+          <span class="slim-follow pill pill-danger" hidden>⚑ Necessita follow-up</span>
         </div>
         <div class="slim-line2">
           <span class="slim-quem"></span>
@@ -307,6 +312,7 @@
           <button class="btn btn-sm" data-act="txt" title="Registrar mensagem">txt</button>
           <button class="btn btn-sm" data-act="lig" title="Registrar ligação">lig</button>
           <button class="btn btn-sm" data-act="fechou" title="Marcar que fechou com a gente">fechou</button>
+          <button class="btn btn-sm btn-follow" data-act="follow" aria-pressed="false" title="Marcar / desmarcar: necessita follow-up">⚑ Necessita follow-up</button>
           <button class="btn btn-sm btn-ghost" data-act="mais" title="Mais opções" aria-haspopup="menu">⋯</button>
         </div>
       </div>

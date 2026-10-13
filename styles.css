@@ -142,6 +142,12 @@ body.readonly .write-only { display: none !important; }
 .slim-status.pill-danger { background: var(--danger-ink); color: var(--surface); }
 .slim-status.pill-ok { background: var(--ok-ink); color: var(--surface); }
 .slim-status.pill-muted { background: var(--muted); color: var(--surface); }
+/* necessita follow-up (botão vermelho quando ligado) */
+.btn-follow { border-color: var(--danger-ink); color: var(--danger-ink); background: transparent; }
+.btn-follow[aria-pressed="true"] { background: var(--danger-ink); color: #fff; border-color: var(--danger-ink); box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger-ink) 25%, transparent); }
+.slim-item.is-follow { outline: 2px solid var(--danger-ink); outline-offset: -2px; }
+.slim-follow[hidden] { display: none; }
+.follow-txt { color: var(--danger-ink); }
 /* origem */
 .slim-origem { font-size: 11px; text-transform: uppercase; letter-spacing: .4px; }
 .slim-origem.org-marketing { background: #efe3ff; color: #5b2aa8; }
