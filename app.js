@@ -368,26 +368,73 @@
   const EMPRESA = "USA Floors";
   const REMETENTE = "Flavio";
   const fmtDataEN = (iso) => { const d = parseISO(iso); return d ? d.toLocaleDateString("en-US", { month: "short", day: "numeric" }) : ""; };
-  function nomeEN(e) { const n = primeiroNome(e.cliente); return /^(unknown|lead|sem)/i.test(n) ? "" : n; }
+  function nomeEN(e) {
+    const n = primeiroNome(e.cliente).replace(/[^A-Za-z'\-]/g, "");
+    if (!n || /^(unknown|lead|sem|general|llc|inc)$/i.test(n)) return "";
+    return n[0].toUpperCase() + n.slice(1).toLowerCase();
+  }
+  // Descrição do serviço em inglês, só quando o texto já está em inglês; senão fala genericamente.
+  function servicoEN(e) {
+    let s = (e.servico || "").trim();
+    if (!s) return "";
+    const pt = /[ãõçáéíóúâêô]|remo[cç][aã]o|escada|reparo|pintura|carpete|instala[cç][aã]o|degrau|piso/i;
+    if (pt.test(s)) {
+      s = s.replace(/remo[cç][aã]o de carpete/gi, "carpet removal").replace(/escada[s]?/gi, "stairs").replace(/reparo[s]?/gi, "repair")
+           .replace(/pintura/gi, "painting").replace(/instala[cç][aã]o/gi, "installation").replace(/piso/gi, "flooring").replace(/degraus?/gi, "steps");
+      if (pt.test(s)) return "";
+    }
+    s = s.replace(/\s+/g, " ").replace(/\.(\d{3})\b/g, ",$1");
+    if (/^(hardwood|laminate|vinyl|lvp|carpet|tile|luxury vinyl)$/i.test(s)) s = `${s.toLowerCase()} floors`;
+    return s;
+  }
+  const diaSemanaEN = (iso) => { const d = parseISO(iso); return d ? d.toLocaleDateString("en-US", { weekday: "long" }) : ""; };
+  // escolha estável de variação por lead, para as mensagens não saírem todas iguais
+  const variante = (e, n) => { let h = 0; for (const c of e.id || "") h = (h * 31 + c.charCodeAt(0)) % 9973; return h % n; };
+
   function sugestaoMensagem(e) {
     const nome = nomeEN(e);
-    const hi = `Hi${nome ? " " + nome : ""}, this is ${REMETENTE} from ${EMPRESA}.`;
-    const serv = e.servico ? ` for ${e.servico}` : "";
+    const hey = nome ? `Hey ${nome}!` : "Hey!";
+    const eu = `${REMETENTE} here, from ${EMPRESA}`;
+    const serv = servicoEN(e);
+    const proj = serv ? `the ${serv}` : "your flooring project";
     const u = ultimoContato(e);
     const d = diasSemContato(e);
-    if (e.status === "fechou") return `${hi} Thank you again for choosing us! If you need anything about your flooring, just text me here.`;
-    if (e.status !== "aberto") return `${hi} Just checking in. If you ever decide to move forward with your flooring project, I'd be glad to help. Have a great day!`;
+    const v = variante(e, 2);
+
+    if (e.status === "fechou") {
+      return `${hey} ${eu}. Just wanted to say thank you again for trusting us with your floors 🙏 If anything comes up, or you have any question at all, text me anytime. Really appreciate you!`;
+    }
+    if (e.status !== "aberto") {
+      return `${hey} ${eu}. No pressure at all, just wanted to say that if ${proj} ever comes back on the table, I'm here and happy to help. Have a great week!`;
+    }
     if (e.agendadoEm) {
       const dAg = diasEntre(e.agendadoEm);
-      if (dAg <= 0) return `${hi} Just confirming our visit on ${fmtDataEN(e.agendadoEm)}${serv}. Does that still work for you?`;
-      return `${hi} We had a visit set for ${fmtDataEN(e.agendadoEm)} and I want to make sure we didn't miss each other. Would you like to reschedule? Just let me know a good day and time.`;
+      const quando = `${diaSemanaEN(e.agendadoEm)}, ${fmtDataEN(e.agendadoEm)}`;
+      if (dAg < 0) return `${hey} ${eu}. Just confirming our visit on ${quando} to look at ${proj}. Looking forward to seeing the space! If anything changes on your end, no worries, just let me know 🙂`;
+      if (dAg === 0) return `${hey} ${eu}. See you today for the visit! I'll be there around the time we set. If anything comes up, just text me 👍`;
+      return `${hey} ${eu}. Looks like we missed each other on ${fmtDataEN(e.agendadoEm)}, totally understand, things come up! Want to pick a new day for the visit? I'm pretty flexible this week.`;
     }
     if (e.estimate) {
-      return `${hi} Just following up on the estimate #${e.estimate}${serv} we sent on ${fmtDataEN(e.enviadoEm)}. Do you have any questions, or would you like to adjust anything? Happy to help.`;
+      const enviado = fmtDataEN(e.enviadoEm);
+      const dias = diasEntre(e.enviadoEm);
+      if (dias >= 10) {
+        return v === 0
+          ? `${hey} Hope you're doing well! ${eu}. I know life gets busy, so just a friendly nudge about the estimate for ${proj} I sent on ${enviado}. Still thinking about it? If the numbers or the timing need a tweak, tell me and we'll make it work 🙂`
+          : `${hey} ${eu}. Been a little while since I sent the estimate for ${proj} (${enviado}), so I wanted to check in. Any questions, or anything you'd like me to adjust? Happy to go over it together whenever is good for you.`;
+      }
+      return v === 0
+        ? `${hey} ${eu}. Just checking in on the estimate I sent on ${enviado} for ${proj}. Did everything make sense? If something needs changing, materials, timing, budget, just say the word and I'll adjust it.`
+        : `${hey} ${eu}. Wanted to see if you had a chance to look at the estimate for ${proj} 🙂 Any questions at all, I'm here. And if you'd like a different option on materials or price, I can put that together too.`;
     }
-    if (!u) return `${hi} Thanks for reaching out${serv}. When would be a good time for a quick visit to measure and give you a free estimate?`;
-    if (d >= 7) return `${hi} It's been a little while since we last talked${serv}. Are you still planning the project? I'd be happy to schedule a quick visit for a free estimate.`;
-    return `${hi} Following up on our conversation${serv}. Would you like to schedule a visit for a free estimate? Just let me know a good day and time.`;
+    if (!u) {
+      return v === 0
+        ? `${hey} ${eu} 👋 Saw you were looking into ${proj}. I'd love to swing by, take a quick look and measure, no cost and no pressure. What day works best for you this week?`
+        : `${hey} ${eu}. Thanks for reaching out about ${proj}! The easiest next step is a quick visit so I can measure and give you a free estimate on the spot. Would this week or next work better for you?`;
+    }
+    if (d >= 7) {
+      return `${hey} ${eu}. Been thinking about ${proj}, how are things going on your end? If you'd like, I can stop by this week for a quick look and a free estimate. Just say the word 🙂`;
+    }
+    return `${hey} ${eu}. Great talking with you! Whenever you're ready, I can come by for a quick visit, measure everything and leave you a free estimate. What day and time would be good for you?`;
   }
   function foneE164(tel) {
     const d = (tel || "").replace(/\D/g, "");
