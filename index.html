@@ -59,10 +59,11 @@
     </div>
 
     <div class="legend">
-      <span class="pill pill-ok">até 2 dias</span>
+      <span class="pill pill-muted">até 2 dias: em dia</span>
       <span class="pill pill-warn">3–6 dias sem contato</span>
       <span class="pill pill-danger">7+ dias / agendamento atrasado</span>
       <span class="pill pill-info">agendado (data futura)</span>
+      <span class="pill pill-ok">verde só quando fechou</span>
       <span class="legend-sep"></span>
       <span class="pill pill-muted">txt = mensagem · lig = ligação · vis = visita</span>
     </div>
@@ -250,6 +251,7 @@
       <div class="slim-main">
         <div class="slim-line1">
           <strong class="slim-nome"></strong>
+          <span class="slim-ref num muted"></span>
           <span class="slim-status pill"></span>
         </div>
         <div class="slim-line2">
@@ -259,8 +261,21 @@
           <span class="dot">·</span>
           <span class="slim-valor num"></span>
         </div>
-        <div class="slim-line3 muted">
+        <div class="slim-line3">
+          <span class="slim-ultimo-label">Último contato</span>
           <span class="slim-ultimo"></span>
+        </div>
+        <div class="slim-ask">
+          <p class="slim-pergunta"></p>
+          <form class="slim-form" autocomplete="off">
+            <select name="tipo" aria-label="Como foi o contato">
+              <option value="txt">txt</option>
+              <option value="lig">ligação</option>
+              <option value="vis">visita</option>
+            </select>
+            <input name="nota" type="text" placeholder="Escreva a atualização aqui…" aria-label="Nova atualização" />
+            <button type="submit" class="btn btn-sm btn-primary">Registrar hoje</button>
+          </form>
         </div>
       </div>
       <div class="slim-side">
@@ -268,7 +283,7 @@
         <div class="slim-actions">
           <button class="btn btn-sm" data-act="txt" title="Registrar mensagem">txt</button>
           <button class="btn btn-sm" data-act="lig" title="Registrar ligação">lig</button>
-          <button class="btn btn-sm btn-success" data-act="fechou" title="Fechou com a gente">✓ fechou</button>
+          <button class="btn btn-sm" data-act="fechou" title="Marcar que fechou com a gente">fechou</button>
           <button class="btn btn-sm btn-ghost" data-act="mais" title="Mais opções" aria-haspopup="menu">⋯</button>
         </div>
       </div>

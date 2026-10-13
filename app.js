@@ -61,6 +61,13 @@
       agendadoEm: e.agendadoEm || null,
       obs: e.obs || "",
       contatos: Array.isArray(e.contatos) ? e.contatos.map((c) => ({ data: c.data, tipo: c.tipo || "txt", nota: c.nota || "" })) : [],
+      // campos vindos das outras bases (QuickBooks / CRM); preservados, não editáveis aqui
+      estimate: e.estimate ? String(e.estimate) : "",
+      origem: e.origem || "",
+      email: e.email || "",
+      crm: e.crm || "",
+      proxFollowUp: e.proxFollowUp || null,
+      fontes: Array.isArray(e.fontes) ? e.fontes : [],
       atualizadoEm: e.atualizadoEm || new Date().toISOString(),
     };
   }
@@ -270,10 +277,12 @@
       const li = tpl.content.firstElementChild.cloneNode(true);
       const sev = severidade(e);
       li.dataset.id = e.id;
-      li.classList.add(`sev-${sev}`);
+      li.classList.add(`sev-${sev}`, `st-${e.status}`);
       if (e.status !== "aberto") li.classList.add("is-closed");
 
       $(".slim-nome", li).textContent = e.cliente;
+      $(".slim-ref", li).textContent = e.estimate ? `#${e.estimate}` : "lead";
+      $(".slim-ref", li).classList.toggle("is-lead", !e.estimate);
 
       const st = $(".slim-status", li);
       if (e.status === "aberto" && e.agendadoEm) {
@@ -285,17 +294,26 @@
         st.textContent = STATUS_LABEL[e.status] || e.status;
       }
 
-      $(".slim-quem", li).textContent = [e.contato, e.telefone].filter(Boolean).join(" ") || "—";
-      $(".slim-onde", li).textContent = e.local || "—";
-      $(".slim-valor", li).textContent = fmtUSD(e.valor);
+      $(".slim-quem", li).textContent = [e.contato, e.telefone].filter(Boolean).join(" ") || "sem telefone";
+      $(".slim-onde", li).textContent = e.local || e.origem || "—";
+      $(".slim-valor", li).textContent = e.valor != null ? fmtUSD(e.valor) : (e.servico || "—");
 
       const u = ultimoContato(e);
-      $(".slim-ultimo", li).textContent = u
-        ? `último: ${TIPO_LABEL[u.tipo] || u.tipo} em ${fmtData(u.data)}${u.nota ? ` — ${u.nota}` : ""}`
-        : `enviado em ${fmtData(e.enviadoEm)}, sem contato depois`;
-
       const d = diasSemContato(e);
+      const elUlt = $(".slim-ultimo", li);
+      elUlt.innerHTML = u
+        ? `<span class="tipo">${esc(TIPO_LABEL[u.tipo] || u.tipo)}</span> <b>${fmtDataLonga(u.data)}</b> <span class="muted">(${d === 0 ? "hoje" : d === 1 ? "ontem" : `${d} dias`})</span>${u.nota ? ` <span class="nota">— ${esc(u.nota)}</span>` : ""}`
+        : `<span class="tipo">nenhum</span> <span class="muted">${e.estimate ? "estimate enviado" : "lead entrou"} em <b>${fmtDataLonga(e.enviadoEm)}</b> (${d} dias) e nada registrado depois</span>`;
+
       $(".slim-dias-n", li).textContent = d == null ? "—" : d;
+
+      // pergunta de acompanhamento + caixinha de atualização
+      const ask = $(".slim-ask", li);
+      const pergunta = perguntaPara(e, u, d);
+      ask.hidden = !pergunta;
+      $(".slim-pergunta", li).textContent = pergunta || "";
+      $(".slim-form", li).classList.add("write-only");
+      if (sev === "info") $('.slim-form select', li).value = "vis";
 
       $$(".slim-actions .btn", li).forEach((b) => b.classList.add("write-only"));
       if (e.status !== "aberto") $('[data-act="fechou"]', li).hidden = true;
@@ -303,10 +321,41 @@
     }
   }
 
+  function primeiroNome(nome) { return (nome || "").trim().split(/\s+/)[0] || "o cliente"; }
+  function perguntaPara(e, u, d) {
+    if (e.status !== "aberto") return "";
+    const nome = primeiroNome(e.cliente);
+    if (e.agendadoEm) {
+      const dAg = diasEntre(e.agendadoEm);
+      if (dAg < 0) return `Visita marcada para ${fmtData(e.agendadoEm)}. Já confirmou com ${nome}? Anote qualquer mudança.`;
+      if (dAg === 0) return `A visita com ${nome} é hoje. Como foi? Registre aqui o que ficou combinado.`;
+      return `A visita era ${fmtData(e.agendadoEm)} e não tem nada registrado depois. Aconteceu? O que ${nome} disse?`;
+    }
+    if (!u) return `Nenhum contato registrado desde ${fmtData(e.enviadoEm)} (${d} dias). Já falou com ${nome}? Qual o status?`;
+    const tipo = TIPO_LABEL[u.tipo] || u.tipo;
+    if (d <= 1) return `${tipo} com ${nome} ${d === 0 ? "hoje" : "ontem"}. Ficou algum próximo passo combinado?`;
+    return `Último ${tipo} com ${nome} foi ${fmtData(u.data)}, há ${d} dias. Teve contato depois disso? Qual a atualização?`;
+  }
+
+  elLista.addEventListener("submit", async (ev) => {
+    const form = ev.target.closest(".slim-form");
+    if (!form) return;
+    ev.preventDefault();
+    const li = form.closest("li[data-id]");
+    const nota = form.elements.nota.value.trim();
+    if (!nota) { form.elements.nota.focus(); return; }
+    const btn = form.querySelector("button");
+    btn.disabled = true;
+    await store.registrarContato(li.dataset.id, { data: hojeISO(), tipo: form.elements.tipo.value, nota }, null, null);
+    btn.disabled = false;
+    toast("Atualização registrada");
+  });
+
   elLista.addEventListener("click", (ev) => {
     const btn = ev.target.closest("button[data-act]");
     const li = ev.target.closest("li[data-id]");
     if (!li) return;
+    if (ev.target.closest(".slim-form")) return;
     const id = li.dataset.id;
     if (!btn) { abrirHistorico(id); return; }
     ev.stopPropagation();
@@ -374,9 +423,9 @@
       const u = ultimoContato(e);
       const d = diasSemContato(e);
       tr.innerHTML = `
-        <td><strong>${esc(e.cliente)}</strong>${e.obs ? `<div class="obs">${esc(e.obs)}</div>` : ""}</td>
-        <td>${esc(e.contato || "—")}${e.telefone ? `<div class="muted num">${esc(e.telefone)}</div>` : ""}</td>
-        <td>${esc(e.local || "—")}</td>
+        <td><strong>${esc(e.cliente)}</strong> <span class="muted num">${e.estimate ? `#${esc(e.estimate)}` : "lead"}</span>${e.obs ? `<div class="obs">${esc(e.obs)}</div>` : ""}</td>
+        <td>${esc(e.contato || (e.telefone ? "" : "—"))}${e.telefone ? `<div class="num">${esc(e.telefone)}</div>` : ""}</td>
+        <td>${esc(e.local || "—")}${e.origem ? `<div class="muted">${esc(e.origem)}</div>` : ""}</td>
         <td>${esc(e.servico || "—")}</td>
         <td class="num">${fmtUSD(e.valor)}</td>
         <td class="num">${fmtDataLonga(e.enviadoEm)}</td>
