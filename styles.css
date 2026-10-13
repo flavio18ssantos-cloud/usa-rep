@@ -142,6 +142,26 @@ body.readonly .write-only { display: none !important; }
 .slim-status.pill-danger { background: var(--danger-ink); color: var(--surface); }
 .slim-status.pill-ok { background: var(--ok-ink); color: var(--surface); }
 .slim-status.pill-muted { background: var(--muted); color: var(--surface); }
+/* origem */
+.slim-origem { font-size: 11px; text-transform: uppercase; letter-spacing: .4px; }
+.slim-origem.org-marketing { background: #efe3ff; color: #5b2aa8; }
+.slim-origem.org-indicacao { background: #e3f6f4; color: #0d6b60; }
+.slim-origem.org-outros { background: var(--surface-2); color: var(--muted); }
+.slim-origem[hidden] { display: none; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .slim-origem.org-marketing { background: #2e1a55; color: #c9a9ff; } :root:not([data-theme="light"]) .slim-origem.org-indicacao { background: #0f3330; color: #7fd8cc; } }
+:root[data-theme="dark"] .slim-origem.org-marketing { background: #2e1a55; color: #c9a9ff; }
+:root[data-theme="dark"] .slim-origem.org-indicacao { background: #0f3330; color: #7fd8cc; }
+/* mensagem sugerida (txt) */
+.msgbox { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; background: color-mix(in srgb, var(--surface-2) 50%, var(--surface)); }
+.msgbox[hidden] { display: none; }
+.msgbox-head { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; align-items: baseline; }
+.msgbox-title { font-size: 12px; text-transform: uppercase; letter-spacing: .5px; font-weight: 700; color: var(--muted); }
+.msgbox textarea { width: 100%; font-size: 14px; line-height: 1.4; resize: vertical; }
+.msgbox-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.msgbox-actions a.btn { text-decoration: none; display: inline-block; }
+.small { font-size: 12px; }
+.slim-sms { text-decoration: none; display: inline-block; }
+.slim-sms[hidden] { display: none; }
 /* pergunta + caixinha de atualização */
 .slim-ask { margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: color-mix(in srgb, var(--surface-2) 60%, var(--surface)); border: 1px dashed var(--border); }
 .slim-ask[hidden] { display: none; }

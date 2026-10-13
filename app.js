@@ -252,10 +252,12 @@
     const soAberto = $("#f-aberto").checked;
     const dias = Number($("#f-dias").value);
     const ordem = $("#f-ordem").value;
+    const origemSel = $("#f-origem").value;
     const q = norm($("#f-busca").value.trim());
 
     const itens = store.itens.filter((e) => {
       if (soAberto && e.status !== "aberto") return false;
+      if (origemSel && grupoOrigem(e) !== origemSel) return false;
       if (dias > 0) {
         const d = diasEntre(dataReferencia(e));
         const agendadoFuturo = e.agendadoEm && diasEntre(e.agendadoEm) <= 0;
@@ -314,6 +316,16 @@
       $(".slim-pergunta", li).textContent = pergunta || "";
       $(".slim-form", li).classList.add("write-only");
       if (sev === "info") $('.slim-form select', li).value = "vis";
+      const sms = $(".slim-sms", li);
+      const href = linkSMS(e.telefone, sugestaoMensagem(e));
+      sms.hidden = !href;
+      if (href) sms.href = href;
+
+      const og = grupoOrigem(e);
+      const elOg = $(".slim-origem", li);
+      elOg.hidden = !e.origem;
+      elOg.className = `slim-origem pill org-${og}`;
+      elOg.textContent = GRUPO_LABEL[og] ? `${GRUPO_LABEL[og]} · ${e.origem}` : e.origem;
 
       $$(".slim-actions .btn", li).forEach((b) => b.classList.add("write-only"));
       if (e.status !== "aberto") $('[data-act="fechou"]', li).hidden = true;
@@ -322,6 +334,53 @@
   }
 
   function primeiroNome(nome) { return (nome || "").trim().split(/\s+/)[0] || "o cliente"; }
+
+  // ---------------------------------------------------------------- origem (marketing x indicação)
+  const ORIGEM_MARKETING = ["marketing", "facebook", "instagram", "meta", "crm", "website", "site", "lsa", "google", "local service", "ads", "campanha", "anuncio"];
+  function grupoOrigem(e) {
+    const o = norm(e.origem);
+    if (!o || o === "quickbooks") return "outros";
+    if (o.includes("indica") || o.includes("referral")) return "indicacao";
+    if (ORIGEM_MARKETING.some((k) => o.includes(k))) return "marketing";
+    return "outros";
+  }
+  const GRUPO_LABEL = { marketing: "Marketing", indicacao: "Indicação", outros: "" };
+
+  // ---------------------------------------------------------------- mensagem sugerida (txt em inglês para o cliente)
+  const EMPRESA = "USA Floors";
+  const REMETENTE = "Flavio";
+  const fmtDataEN = (iso) => { const d = parseISO(iso); return d ? d.toLocaleDateString("en-US", { month: "short", day: "numeric" }) : ""; };
+  function nomeEN(e) { const n = primeiroNome(e.cliente); return /^(unknown|lead|sem)/i.test(n) ? "" : n; }
+  function sugestaoMensagem(e) {
+    const nome = nomeEN(e);
+    const hi = `Hi${nome ? " " + nome : ""}, this is ${REMETENTE} from ${EMPRESA}.`;
+    const serv = e.servico ? ` for ${e.servico}` : "";
+    const u = ultimoContato(e);
+    const d = diasSemContato(e);
+    if (e.status === "fechou") return `${hi} Thank you again for choosing us! If you need anything about your flooring, just text me here.`;
+    if (e.status !== "aberto") return `${hi} Just checking in. If you ever decide to move forward with your flooring project, I'd be glad to help. Have a great day!`;
+    if (e.agendadoEm) {
+      const dAg = diasEntre(e.agendadoEm);
+      if (dAg <= 0) return `${hi} Just confirming our visit on ${fmtDataEN(e.agendadoEm)}${serv}. Does that still work for you?`;
+      return `${hi} We had a visit set for ${fmtDataEN(e.agendadoEm)} and I want to make sure we didn't miss each other. Would you like to reschedule? Just let me know a good day and time.`;
+    }
+    if (e.estimate) {
+      return `${hi} Just following up on the estimate #${e.estimate}${serv} we sent on ${fmtDataEN(e.enviadoEm)}. Do you have any questions, or would you like to adjust anything? Happy to help.`;
+    }
+    if (!u) return `${hi} Thanks for reaching out${serv}. When would be a good time for a quick visit to measure and give you a free estimate?`;
+    if (d >= 7) return `${hi} It's been a little while since we last talked${serv}. Are you still planning the project? I'd be happy to schedule a quick visit for a free estimate.`;
+    return `${hi} Following up on our conversation${serv}. Would you like to schedule a visit for a free estimate? Just let me know a good day and time.`;
+  }
+  function foneE164(tel) {
+    const d = (tel || "").replace(/\D/g, "");
+    if (d.length === 10) return "+1" + d;
+    if (d.length === 11 && d[0] === "1") return "+" + d;
+    return d ? "+" + d : "";
+  }
+  function linkSMS(tel, texto) {
+    const f = foneE164(tel);
+    return f ? `sms:${f}?&body=${encodeURIComponent(texto)}` : "";
+  }
   function perguntaPara(e, u, d) {
     if (e.status !== "aberto") return "";
     const nome = primeiroNome(e.cliente);
@@ -522,8 +581,32 @@
     f.agendadoEm.value = "";
     $("#dlg-contato-titulo").textContent = tipo === "lig" ? "Registrar ligação" : tipo === "vis" ? "Registrar visita" : "Registrar contato";
     $("#dlg-contato-cliente").textContent = [e.cliente, e.contato, e.local].filter(Boolean).join(" · ");
+    $("#c-msg-texto").value = sugestaoMensagem(e);
+    $("#c-msg-fone").textContent = e.telefone || "sem telefone cadastrado";
+    atualizarMsgBox(e);
     dlgContato.showModal();
   }
+
+  function atualizarMsgBox(e) {
+    const box = $("#c-msg");
+    const tipo = formContato.elements.tipo.value;
+    box.hidden = tipo !== "txt";
+    const a = $("#c-sms");
+    const href = linkSMS(e.telefone, $("#c-msg-texto").value);
+    a.hidden = !href;
+    if (href) a.href = href;
+  }
+  formContato.elements.tipo.addEventListener("change", () => { const e = store.get(formContato.elements.id.value); if (e) atualizarMsgBox(e); });
+  $("#c-msg-texto").addEventListener("input", () => { const e = store.get(formContato.elements.id.value); if (e) atualizarMsgBox(e); });
+  $("#c-msg-copiar").addEventListener("click", async () => {
+    const ta = $("#c-msg-texto");
+    try { await navigator.clipboard.writeText(ta.value); toast("Mensagem copiada"); }
+    catch { ta.focus(); ta.select(); toast("Selecionado: use Ctrl/Cmd+C para copiar"); }
+  });
+  $("#c-sms").addEventListener("click", () => {
+    const f = formContato.elements;
+    if (!f.nota.value.trim()) f.nota.value = "Mandei txt de follow-up";
+  });
 
   formContato.addEventListener("submit", async (ev) => {
     ev.preventDefault();
@@ -605,7 +688,7 @@
     if (v) $(`.tab[data-view="${v}"]`)?.click();
   } catch { /* ignore */ }
 
-  ["#f-aberto", "#f-dias", "#f-ordem", "#f-busca", "#p-status", "#p-busca"].forEach((sel) => $(sel).addEventListener("input", render));
+  ["#f-aberto", "#f-dias", "#f-ordem", "#f-origem", "#f-busca", "#p-status", "#p-busca"].forEach((sel) => $(sel).addEventListener("input", render));
 
   $("#btn-novo").addEventListener("click", () => abrirEstimate(null));
   $("#btn-novo").classList.add("write-only");

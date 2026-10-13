@@ -44,6 +44,15 @@
             <option value="0">todos</option>
           </select>
         </label>
+        <label class="field-inline" for="f-origem">
+          <span>Origem</span>
+          <select id="f-origem">
+            <option value="" selected>todas</option>
+            <option value="marketing">Marketing (campanha)</option>
+            <option value="indicacao">Indicação</option>
+            <option value="outros">Outros / sem origem</option>
+          </select>
+        </label>
         <label class="field-inline" for="f-ordem">
           <span>Ordenar</span>
           <select id="f-ordem">
@@ -185,6 +194,18 @@
         </label>
         <label for="c-data">Quando <input id="c-data" name="data" type="date" required /></label>
       </div>
+      <div id="c-msg" class="msgbox">
+        <div class="msgbox-head">
+          <span class="msgbox-title">Mensagem sugerida</span>
+          <span class="muted num" id="c-msg-fone"></span>
+        </div>
+        <textarea id="c-msg-texto" rows="4" aria-label="Texto da mensagem"></textarea>
+        <div class="msgbox-actions">
+          <a id="c-sms" class="btn btn-primary" target="_blank" rel="noopener">✉ Abrir no app de mensagens</a>
+          <button type="button" class="btn" id="c-msg-copiar">Copiar mensagem</button>
+          <span class="muted small">Se o link não abrir no seu aparelho, copie e cole no app.</span>
+        </div>
+      </div>
       <label for="c-nota">Resumo <input id="c-nota" name="nota" placeholder="Ex.: disse que decide semana que vem" /></label>
       <div class="grid-2">
         <label for="c-status">Resultado
@@ -253,6 +274,7 @@
           <strong class="slim-nome"></strong>
           <span class="slim-ref num muted"></span>
           <span class="slim-status pill"></span>
+          <span class="slim-origem pill"></span>
         </div>
         <div class="slim-line2">
           <span class="slim-quem"></span>
@@ -275,6 +297,7 @@
             </select>
             <input name="nota" type="text" placeholder="Escreva a atualização aqui…" aria-label="Nova atualização" />
             <button type="submit" class="btn btn-sm btn-primary">Registrar hoje</button>
+            <a class="btn btn-sm slim-sms" target="_blank" rel="noopener" title="Abre o app de mensagens com o número do cliente e a sugestão de texto">✉ Abrir txt</a>
           </form>
         </div>
       </div>
