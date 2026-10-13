@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>USA Rep Estimates</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<!-- BODY-START -->
+  <header class="topbar">
+    <div class="brand">USA Rep <span class="brand-sub">Estimates</span></div>
+    <nav class="tabs" role="tablist">
+      <button class="tab is-active" id="tab-followup" data-view="followup" role="tab">Follow-up</button>
+      <button class="tab" id="tab-padrao" data-view="padrao" role="tab">Padrão</button>
+    </nav>
+    <div class="topbar-actions">
+      <span id="sync-badge" class="pill pill-muted" title="Onde os dados estão guardados">…</span>
+      <button class="btn btn-primary" id="btn-novo">+ Novo estimate</button>
+      <button class="btn" id="btn-exportar" title="Copiar JSON com todos os estimates">Copiar JSON</button>
+      <label class="btn" for="input-importar" title="Carregar JSON exportado">Importar</label>
+      <input type="file" id="input-importar" accept="application/json" hidden />
+    </div>
+  </header>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <!-- ===================== FOLLOW-UP (slim) ===================== -->
+  <section id="view-followup" class="view is-active">
+    <div class="toolbar">
+      <div class="toolbar-group">
+        <label class="switch" for="f-aberto">
+          <input type="checkbox" id="f-aberto" checked />
+          <span>Só em aberto</span>
+        </label>
+        <label class="switch" for="f-follow">
+          <input type="checkbox" id="f-follow" />
+          <span class="follow-txt">Só "necessita follow-up"</span>
+        </label>
+        <label class="field-inline" for="f-dias">
+          <span>Últimos</span>
+          <select id="f-dias">
+            <option value="20" selected>20 dias</option>
+            <option value="7">7 dias</option>
+            <option value="30">30 dias</option>
+            <option value="60">60 dias</option>
+            <option value="0">todos</option>
+          </select>
+        </label>
+        <label class="field-inline" for="f-origem">
+          <span>Origem</span>
+          <select id="f-origem">
+            <option value="" selected>todas</option>
+            <option value="marketing">Marketing (campanha)</option>
+            <option value="indicacao">Indicação</option>
+            <option value="outros">Outros / sem origem</option>
+          </select>
+        </label>
+        <label class="field-inline" for="f-ordem">
+          <span>Ordenar</span>
+          <select id="f-ordem">
+            <option value="recente" selected>contato mais recente → mais antigo</option>
+            <option value="antigo">mais tempo sem contato primeiro</option>
+            <option value="valor">maior valor</option>
+          </select>
+        </label>
+      </div>
+      <div class="toolbar-group">
+        <input type="search" id="f-busca" placeholder="Buscar nome, cidade, contato…" />
+      </div>
+    </div>
+
+    <div class="legend">
+      <span class="pill pill-muted">até 2 dias: em dia</span>
+      <span class="pill pill-warn">3–6 dias sem contato</span>
+      <span class="pill pill-danger">7+ dias / agendamento atrasado</span>
+      <span class="pill pill-info">agendado (data futura)</span>
+      <span class="pill pill-ok">verde só quando fechou</span>
+      <span class="legend-sep"></span>
+      <span class="pill pill-muted">txt = mensagem · lig = ligação · vis = visita</span>
+    </div>
+
+    <ol id="lista-followup" class="slim-list" aria-live="polite"></ol>
+    <div id="followup-vazio" class="empty" hidden>
+      <p class="empty-title">Nenhum estimate nesse filtro.</p>
+      <p class="muted">Desligue "Só em aberto", amplie a janela de dias ou clique em <b>+ Novo estimate</b>.</p>
+    </div>
+  </section>
+
+  <!-- ===================== PADRÃO (completo) ===================== -->
+  <section id="view-padrao" class="view">
+    <div class="toolbar">
+      <div class="toolbar-group">
+        <label class="field-inline" for="p-status">
+          <span>Status</span>
+          <select id="p-status">
+            <option value="">todos</option>
+            <option value="aberto">em aberto</option>
+            <option value="fechou">fechou</option>
+            <option value="fechou_outro">fechou com outro</option>
+            <option value="desistiu">desistiu</option>
+          </select>
+        </label>
+      </div>
+      <div class="toolbar-group">
+        <input type="search" id="p-busca" placeholder="Buscar…" />
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="table" id="tabela-padrao">
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>Contato</th>
+            <th>Local</th>
+            <th>Serviço</th>
+            <th class="num">Valor</th>
+            <th>Enviado</th>
+            <th>Status</th>
+            <th>Último contato</th>
+            <th class="num">Dias</th>
+            <th>Agendado</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div id="padrao-vazio" class="empty" hidden>
+      <p class="empty-title">Nenhum estimate ainda.</p>
+      <p class="muted">Clique em <b>+ Novo estimate</b> para cadastrar o primeiro.</p>
+    </div>
+  </section>
+
+  <!-- ===================== MENU "mais" (popover) ===================== -->
+  <div id="menu-mais" class="menu" hidden>
+    <button class="menu-item" data-act="vis">Registrar visita</button>
+    <button class="menu-item" data-act="agendar">Agendar visita / estimate</button>
+    <hr />
+    <button class="menu-item" data-act="fechou">✓ Fechou com a gente</button>
+    <button class="menu-item" data-act="fechou_outro">Fechou com outro</button>
+    <button class="menu-item" data-act="desistiu">Desistiu</button>
+    <button class="menu-item" data-act="aberto">Reabrir (em aberto)</button>
+    <hr />
+    <button class="menu-item" data-act="historico">Ver histórico</button>
+    <button class="menu-item" data-act="editar">Editar tudo</button>
+  </div>
+
+  <!-- ===================== MODAL: estimate (novo / editar) ===================== -->
+  <dialog id="dlg-estimate">
+    <form id="form-estimate" class="form">
+      <h2 id="dlg-estimate-titulo">Novo estimate</h2>
+      <input type="hidden" name="id" id="e-id" />
+      <div class="grid-2">
+        <label for="e-cliente">Cliente <input id="e-cliente" name="cliente" required placeholder="Ex.: Johnson Residence" /></label>
+        <label for="e-contato">Contato (quem) <input id="e-contato" name="contato" placeholder="Ex.: Mike Johnson" /></label>
+        <label for="e-telefone">Telefone <input id="e-telefone" name="telefone" placeholder="(561) 555-0100" /></label>
+        <label for="e-local">Local (onde) <input id="e-local" name="local" placeholder="Ex.: Boca Raton, FL" /></label>
+        <label for="e-servico">Serviço <input id="e-servico" name="servico" placeholder="Ex.: Paver driveway 1,200 sqft" /></label>
+        <label for="e-valor">Valor (US$) <input id="e-valor" name="valor" type="number" min="0" step="1" placeholder="0" /></label>
+        <label for="e-enviadoEm">Enviado em <input id="e-enviadoEm" name="enviadoEm" type="date" required /></label>
+        <label for="e-status">Status
+          <select id="e-status" name="status">
+            <option value="aberto">em aberto</option>
+            <option value="fechou">fechou</option>
+            <option value="fechou_outro">fechou com outro</option>
+            <option value="desistiu">desistiu</option>
+          </select>
+        </label>
+        <label for="e-agendadoEm">Agendado para (visita / estimate marcado) <input id="e-agendadoEm" name="agendadoEm" type="date" /></label>
+      </div>
+      <label for="e-obs">Observações <textarea id="e-obs" name="obs" rows="3" placeholder="Detalhes que não precisam aparecer no follow-up"></textarea></label>
+      <div class="form-actions">
+        <button type="button" class="btn btn-danger-ghost" id="btn-excluir" hidden>Excluir</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn" data-close>Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ===================== MODAL: registrar contato ===================== -->
+  <dialog id="dlg-contato">
+    <form id="form-contato" class="form">
+      <h2 id="dlg-contato-titulo">Registrar contato</h2>
+      <p class="muted" id="dlg-contato-cliente"></p>
+      <input type="hidden" name="id" id="c-id" />
+      <div class="grid-2">
+        <label for="c-tipo">Como foi
+          <select id="c-tipo" name="tipo">
+            <option value="txt">txt (mensagem)</option>
+            <option value="lig">ligação</option>
+            <option value="vis">visita</option>
+            <option value="email">e-mail</option>
+          </select>
+        </label>
+        <label for="c-data">Quando <input id="c-data" name="data" type="date" required /></label>
+      </div>
+      <div id="c-msg" class="msgbox">
+        <div class="msgbox-head">
+          <span class="msgbox-title">Mensagem sugerida</span>
+          <span class="muted num" id="c-msg-fone"></span>
+        </div>
+        <textarea id="c-msg-texto" rows="4" aria-label="Texto da mensagem"></textarea>
+        <div class="msgbox-actions">
+          <a id="c-sms" class="btn btn-primary" target="_blank" rel="noopener">✉ Abrir no app de mensagens</a>
+          <button type="button" class="btn" id="c-msg-copiar">Copiar mensagem</button>
+          <span class="muted small">Se o link não abrir no seu aparelho, copie e cole no app.</span>
+        </div>
+      </div>
+      <label for="c-nota">Resumo <input id="c-nota" name="nota" placeholder="Ex.: disse que decide semana que vem" /></label>
+      <div class="grid-2">
+        <label for="c-status">Resultado
+          <select id="c-status" name="status">
+            <option value="">continua em aberto</option>
+            <option value="fechou">fechou</option>
+            <option value="fechou_outro">fechou com outro</option>
+            <option value="desistiu">desistiu</option>
+          </select>
+        </label>
+        <label for="c-agendadoEm">Agendou para (opcional) <input id="c-agendadoEm" name="agendadoEm" type="date" /></label>
+      </div>
+      <div class="form-actions">
+        <span class="spacer"></span>
+        <button type="button" class="btn" data-close>Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar contato</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ===================== MODAL: agendar ===================== -->
+  <dialog id="dlg-agendar">
+    <form id="form-agendar" class="form">
+      <h2>Agendar visita / estimate</h2>
+      <p class="muted" id="dlg-agendar-cliente"></p>
+      <input type="hidden" name="id" id="a-id" />
+      <label for="a-data">Data agendada <input id="a-data" name="data" type="date" required /></label>
+      <div class="form-actions">
+        <button type="button" class="btn btn-danger-ghost" id="btn-desagendar">Limpar agendamento</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn" data-close>Cancelar</button>
+        <button type="submit" class="btn btn-primary">Agendar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ===================== MODAL: histórico ===================== -->
+  <dialog id="dlg-historico">
+    <div class="form">
+      <h2 id="dlg-historico-titulo">Histórico</h2>
+      <ol id="lista-historico" class="history"></ol>
+      <div class="form-actions">
+        <span class="spacer"></span>
+        <button type="button" class="btn" data-close>Fechar</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ===================== MODAL: confirmar ===================== -->
+  <dialog id="dlg-confirmar">
+    <div class="form">
+      <h2 id="dlg-confirmar-titulo">Confirmar</h2>
+      <p id="dlg-confirmar-texto"></p>
+      <div class="form-actions">
+        <span class="spacer"></span>
+        <button type="button" class="btn" data-close>Cancelar</button>
+        <button type="button" class="btn btn-danger" id="btn-confirmar-ok">Confirmar</button>
+      </div>
+    </div>
+  </dialog>
+
+  <template id="tpl-slim-item">
+    <li class="slim-item">
+      <div class="slim-main">
+        <div class="slim-line1">
+          <strong class="slim-nome"></strong>
+          <span class="slim-ref num muted"></span>
+          <span class="slim-status pill"></span>
+          <span class="slim-origem pill"></span>
+          <span class="slim-follow pill pill-danger" hidden>⚑ Necessita follow-up</span>
+        </div>
+        <div class="slim-line2">
+          <span class="slim-quem"></span>
+          <span class="dot">·</span>
+          <span class="slim-onde"></span>
+          <span class="dot">·</span>
+          <span class="slim-valor num"></span>
+        </div>
+        <div class="slim-line3">
+          <span class="slim-ultimo-label">Último contato</span>
+          <span class="slim-ultimo"></span>
+        </div>
+        <div class="slim-ask">
+          <p class="slim-pergunta"></p>
+          <form class="slim-form" autocomplete="off">
+            <select name="tipo" aria-label="Como foi o contato">
+              <option value="txt">txt</option>
+              <option value="lig">ligação</option>
+              <option value="vis">visita</option>
+            </select>
+            <input name="nota" type="text" placeholder="Escreva a atualização aqui…" aria-label="Nova atualização" />
+            <button type="submit" class="btn btn-sm btn-primary">Registrar hoje</button>
+            <a class="btn btn-sm slim-sms" target="_blank" rel="noopener" title="Abre o app de mensagens com o número do cliente e a sugestão de texto">✉ Abrir txt</a>
+          </form>
+        </div>
+      </div>
+      <div class="slim-side">
+        <div class="slim-dias"><b class="slim-dias-n num"></b><small>dias</small></div>
+        <div class="slim-actions">
+          <button class="btn btn-sm" data-act="txt" title="Registrar mensagem">txt</button>
+          <button class="btn btn-sm" data-act="lig" title="Registrar ligação">lig</button>
+          <button class="btn btn-sm" data-act="fechou" title="Marcar que fechou com a gente">fechou</button>
+          <button class="btn btn-sm btn-follow" data-act="follow" aria-pressed="false" title="Marcar / desmarcar: necessita follow-up">⚑ Necessita follow-up</button>
+          <button class="btn btn-sm btn-ghost" data-act="mais" title="Mais opções" aria-haspopup="menu">⋯</button>
+        </div>
+      </div>
+    </li>
+  </template>
+<!-- BODY-END -->
+  <script src="app.js"></script>
+</body>
+</html>
