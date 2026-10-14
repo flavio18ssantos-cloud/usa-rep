@@ -1,0 +1,1414 @@
+<title>Acompanhamento Semanal de Leads</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600&display=swap">
+<style>
+/* Layout: cabeçalho da marca, resumo em tiles, filtros em chips, depois os leads agrupados por semana de entrada; cada linha tem o lead à esquerda, o termômetro e os quadradinhos de parecer à direita. Linha verde clara = estimate marcado; verde escura com o Pernalonga = fechou. */
+:root{
+  --bg:#eef3ff; --surface:#ffffff; --fg:#111a33; --muted:#55607d; --line:#d3dcf2;
+  --accent:#2b5cff; --accent-fg:#ffffff; --danger:#d11f3a; --danger-fg:#ffffff; --edit:#e11d48; --edit-fg:#ffffff;
+  --chip-l:91%; --chip-fl:26%; --brand-bg:#0b1533; --brand-fg:#ffffff; --brand-muted:#c3cdea;
+  --closed:#08894a; --closed-fg:#ffffff; --closed-ink:#087a43; --closed-bg:#d9f7e6;
+  --won-bg:#0f6b3c; --won-fg:#ffffff; --won-muted:#cdeedb; --won-line:#2f9a62;
+  --open:#ff8a1f; --open-fg:#2a1200; --open-ink:#c2500a; --open-bg:#ffe9d1;
+  --cold:#5b7fd8; --cold-bg:#e3ebff; --cold-ink:#2f4fa8; --danger-bg:#fde2e7; --danger-ink:#b3122c;
+  --focus:#2b5cff; --therm-l:46%; --track:#e4eaf8; --sug-bg:#f6f8ff;
+  --display:"Bricolage Grotesque","Trebuchet MS",sans-serif;
+  --body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0d1226; --surface:#161d38; --fg:#eaf0ff; --muted:#a0abc9; --line:#2a3458;
+    --accent:#7da2ff; --accent-fg:#0a1330; --danger:#ff6b81; --danger-fg:#2a0008; --chip-l:22%; --chip-fl:84%;
+    --closed:#2fd482; --closed-fg:#04200f; --closed-ink:#2fd482; --closed-bg:#0f3324;
+    --won-bg:#0b4a2a; --won-fg:#f0fff6; --won-muted:#a9dcbf; --won-line:#2fd482;
+    --open:#ffa040; --open-fg:#2a1200; --open-ink:#ffa040; --open-bg:#3d2608;
+    --cold:#7da2ff; --cold-bg:#15214a; --cold-ink:#a9c1ff; --danger-bg:#3a0f18; --danger-ink:#ff8da0;
+    --focus:#a9c1ff; --therm-l:58%; --track:#232c4d; --sug-bg:#121a36;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0d1226; --surface:#161d38; --fg:#eaf0ff; --muted:#a0abc9; --line:#2a3458;
+  --accent:#7da2ff; --accent-fg:#0a1330; --danger:#ff6b81; --danger-fg:#2a0008; --chip-l:22%; --chip-fl:84%;
+  --closed:#2fd482; --closed-fg:#04200f; --closed-ink:#2fd482; --closed-bg:#0f3324;
+  --won-bg:#0b4a2a; --won-fg:#f0fff6; --won-muted:#a9dcbf; --won-line:#2fd482;
+  --open:#ffa040; --open-fg:#2a1200; --open-ink:#ffa040; --open-bg:#3d2608;
+  --cold:#7da2ff; --cold-bg:#15214a; --cold-ink:#a9c1ff; --danger-bg:#3a0f18; --danger-ink:#ff8da0;
+  --focus:#a9c1ff; --therm-l:58%; --track:#232c4d; --sug-bg:#121a36;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45}
+.wrap{max-width:960px;margin:0 auto;padding-inline:16px;padding-block:28px 48px;display:flex;flex-direction:column;gap:20px}
+.brand{background:var(--brand-bg);border-radius:12px;padding:18px 20px;display:flex;flex-wrap:wrap;align-items:center;gap:14px 24px}
+.brand img{height:64px;width:auto;max-width:100%}
+.brand .logo{margin:0;display:flex;flex-direction:column;align-items:center;gap:6px;flex:0 0 auto;max-width:100%}
+.brand .logo .mascot{height:120px;width:auto;border-radius:10px;border:2px solid var(--brand-muted)}
+.brand .logo figcaption{font-family:var(--display);font-weight:700;color:var(--open);font-size:.95rem;letter-spacing:.01em;text-align:center}
+.brand > div{flex:1 1 240px;min-width:0}
+.brand .sub{color:var(--brand-muted)}
+.brand .upd{font-weight:600;color:var(--brand-fg);font-size:.86rem}
+.brand .lang{display:flex;gap:6px;margin-top:10px}
+.brand .lang button{font:inherit;font-weight:600;font-size:.8rem;color:var(--brand-fg);background:transparent;border:1px solid var(--brand-muted);border-radius:999px;padding:3px 10px;cursor:pointer}
+.brand .lang button[aria-pressed="true"]{background:var(--brand-fg);color:var(--brand-bg);border-color:var(--brand-fg)}
+h1{color:var(--brand-fg);font-family:var(--display);font-size:1.75rem;line-height:1.15;margin:0;text-wrap:balance}
+.sub{color:var(--muted);margin:4px 0 0}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+@media (max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-width:0}
+.stat .k{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.stat .v{font-family:var(--display);font-size:1.5rem;font-variant-numeric:tabular-nums}
+.stat .m{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.9rem}
+.stat.p{background:var(--accent);border-color:var(--accent)}
+.stat.p .k,.stat.p .v,.stat.p .m{color:var(--accent-fg)}
+.stat.c{background:var(--closed-bg);border-color:var(--closed)} .stat.o{background:var(--open-bg);border-color:var(--open)} .stat.f{background:var(--cold-bg);border-color:var(--cold)}
+.stat.c .v{color:var(--closed-ink)} .stat.o .v{color:var(--open-ink)} .stat.f .v{color:var(--cold-ink)}
+.stat.c .k,.stat.c .m,.stat.o .k,.stat.o .m,.stat.f .k,.stat.f .m{color:var(--fg)}
+.bar{display:flex;flex-wrap:wrap;gap:10px 24px}
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.filters button{font:inherit;font-weight:500;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 14px;cursor:pointer}
+.filters button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.filters button#urg-btn{border-color:var(--danger);color:var(--danger-ink);font-weight:700}
+.filters button#urg-btn[aria-pressed="true"]{background:var(--danger);color:var(--danger-fg);border-color:var(--danger)}
+.urg{display:inline-flex;align-items:center;gap:6px;width:max-content;max-width:100%;font-size:.84rem;font-weight:700;border-radius:8px;padding:3px 10px;overflow-wrap:anywhere}
+.urg::before{content:"";width:9px;height:9px;border-radius:50%;background:currentColor;flex:0 0 auto}
+.urg.l3{background:var(--danger);color:var(--danger-fg)}
+.urg.l2{background:var(--open);color:var(--open-fg)}
+.urg.l1{background:var(--cold-bg);color:var(--cold-ink)}
+.filters button#fu-btn[aria-pressed="true"]{background:var(--open);color:var(--open-fg);border-color:var(--open)}
+.filters button#print-btn[aria-pressed="true"]{background:var(--brand-bg);color:var(--brand-fg);border-color:var(--brand-bg)}
+body.printing .bar,body.printing .stats,body.printing #gbody,body.printing .legend,body.printing #addcard,body.printing .note,body.printing #msg{display:none!important}
+.printtab{background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.printtab .ph{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 14px}
+.printtab h2{margin:0;font-family:var(--display);font-size:1.15rem}
+.printtab .ph .meta{font-size:.9rem}
+.printtab .back{font:inherit;font-weight:600;font-size:.82rem;border-radius:999px;padding:5px 12px;cursor:pointer;background:var(--accent);color:var(--accent-fg);border:1px solid var(--accent)}
+.printtab .tw{overflow-x:auto}
+.printtab table{border-collapse:collapse;width:100%;font-size:13px;min-width:720px}
+.printtab th{font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:left;padding:6px 8px;border-bottom:2px solid var(--line);white-space:nowrap}
+.printtab td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top;font-variant-numeric:tabular-nums}
+.printtab tr:nth-child(even) td{background:var(--bg)}
+.printtab td .nm{font-weight:700;display:block}
+.printtab td .tl{color:var(--accent);font-weight:600;white-space:nowrap}
+.printtab td .vl{font-weight:700;white-space:nowrap}
+.printtab td .ht{font-weight:700;white-space:nowrap}
+.printtab .pill{font-size:.76rem}
+.filters button#est-btn[aria-pressed="true"]{background:var(--closed);color:var(--closed-fg);border-color:var(--closed)}
+.estrip{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:.86rem;color:var(--muted);padding:8px 10px;border:1.5px dashed var(--closed);border-radius:8px;background:var(--surface)}
+.estrip .fub{font:inherit;font-size:.8rem;font-weight:600;border-radius:999px;padding:4px 10px;cursor:pointer;background:var(--closed);color:var(--closed-fg);border:1px solid var(--closed)}
+.estrip .fub:disabled{opacity:.6;cursor:default}
+.estrip .msg{flex:1 1 100%;display:flex;flex-direction:column;gap:6px;min-width:0}
+.estrip .msg .hd{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px}
+.estrip .msg .hd .acts{gap:6px}
+.estrip pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;font-size:.88rem;color:var(--fg);background:var(--sug-bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.jwrap{overflow-x:auto;padding:4px 0 2px}
+.journey{display:grid;grid-template-columns:repeat(7,1fr);min-width:600px}
+.jn{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;font-size:.74rem;color:var(--muted);min-width:0;padding:0 4px}
+.jn::before{content:"";position:absolute;top:8px;left:0;right:0;height:2px;background:var(--line)}
+.jn:first-child::before{left:50%}.jn:last-child::before{right:50%}
+.jn.done::before,.jn.won::before{background:var(--closed)}
+.jn .dot{width:18px;height:18px;border-radius:50%;border:2px solid var(--line);background:var(--surface);position:relative;z-index:1;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--closed-fg)}
+.jn.done .dot{background:var(--closed);border-color:var(--closed)}
+.jn.done .dot::after{content:"✓"}
+.jn.won .dot{background:var(--won-bg);border-color:var(--won-bg)}
+.jn.won .dot::after{content:"$"}
+.jn.next .dot{border-color:var(--open);background:var(--open-bg);box-shadow:0 0 0 3px var(--open-bg)}
+.jn.over .dot{border-color:var(--danger);background:var(--danger-bg)}
+.jn.over .dot::after{content:"!";color:var(--danger-ink)}
+.jn.sched .dot{border-color:var(--cold);background:var(--cold-bg)}
+.jn.dead .dot{border-color:var(--muted);background:var(--track)}
+.jn .l{font-weight:600;color:var(--fg);margin-top:5px;line-height:1.15;overflow-wrap:anywhere}
+.jn .d{font-variant-numeric:tabular-nums;line-height:1.2}
+.jn.over .d{color:var(--danger-ink);font-weight:700}
+.jn.next .l{color:var(--open-ink)}
+.jn.sched .d{color:var(--cold-ink);font-weight:600}
+.row.closed .jn,.row.closed .jn .l,.row.closed .jn .d{color:var(--won-fg)}
+.row.closed .jn::before{background:var(--won-line)}
+.row.closed .jn .dot{background:var(--won-bg)}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;display:flex;flex-direction:column;gap:12px;background:var(--bg);padding-bottom:6px;margin-bottom:-6px}
+.gbar{background:var(--brand-bg);color:var(--brand-fg);border-radius:12px;padding:10px 14px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;box-shadow:0 6px 18px rgba(11,21,51,.25)}
+.gbar .gt{font-family:var(--display);font-weight:700;font-size:.95rem;margin-right:4px;white-space:nowrap}
+.gbar .gc{font-size:.8rem;font-weight:600;border-radius:999px;padding:4px 10px;background:rgba(255,255,255,.1);border:1px solid var(--brand-muted);color:var(--brand-fg);white-space:nowrap}
+.gbar .gc b{color:var(--open)}
+.gbar .gtog{margin-left:auto;font:inherit;font-weight:700;font-size:.82rem;border-radius:999px;padding:5px 12px;cursor:pointer;background:var(--open);color:var(--open-fg);border:1px solid var(--open)}
+@media (max-width:640px){.gbar{padding:8px 10px}.gbar .gc{font-size:.74rem;padding:3px 8px}}
+/* Celular: só a barra de direcionamento comercial fica congelada, em uma linha que rola para o lado; o cabeçalho da marca rola junto com a página. */
+@media (max-width:640px){
+  .top{display:contents}
+  .gbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;padding-right:0}
+  .gbar::-webkit-scrollbar{display:none}
+  .gbar > *{flex:0 0 auto}
+  .gbar .gtog{position:sticky;right:0;margin-left:auto;box-shadow:-10px 0 0 var(--brand-bg),8px 0 0 var(--brand-bg)}
+}
+.gbody{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:18px}
+.gbody h3{margin:0;font-family:var(--display);font-size:1.1rem}
+.gbody h4{margin:0;font-family:var(--display);font-size:.95rem}
+.gsit{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
+.gcard{border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px;background:var(--bg)}
+.gcard .num{font-family:var(--display);font-weight:700;font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--open-ink)}
+.gcard h4{font-size:1rem}
+.gcard ol{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:3px;font-size:.9rem}
+.gcard .why{font-size:.82rem;color:var(--muted);border-left:3px solid var(--accent);padding-left:8px}
+.gcad{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.gtrack{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.gtrack .th{background:var(--accent);color:var(--accent-fg);font-family:var(--display);font-weight:700;padding:8px 12px}
+.gtrack .tr{display:grid;grid-template-columns:52px 1fr;gap:8px;padding:8px 12px;border-top:1px solid var(--line);align-items:start;font-size:.88rem}
+.gtrack .tr .dd{font-family:var(--display);font-weight:700;font-variant-numeric:tabular-nums}
+.gtrack .acts{display:flex;flex-wrap:wrap;gap:6px}
+.gtrack .ch{font-size:.76rem;font-weight:700;border-radius:6px;padding:2px 8px;white-space:nowrap}
+.gtrack .ch.call{background:var(--cold-bg);color:var(--cold-ink)}
+.gtrack .ch.text{background:var(--closed-bg);color:var(--closed-ink)}
+.gtrack .what{overflow-wrap:anywhere}
+.gdo{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.gdo ul{margin:0;padding-left:18px;font-size:.9rem;display:flex;flex-direction:column;gap:3px}
+.gdo .ok h4{color:var(--closed-ink)} .gdo .no h4{color:var(--danger-ink)}
+.glaw{font-size:.9rem;background:var(--open-bg);color:var(--fg);border-radius:10px;padding:10px 12px}
+.gsrc{font-size:.82rem;color:var(--muted);display:flex;flex-direction:column;gap:4px}
+.gsrc a{color:var(--accent)}
+.gsrc .tag{font-size:.7rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border:1px solid var(--line);border-radius:4px;padding:0 5px;margin-right:4px}
+.row.closed .estrip{background:rgba(255,255,255,.1);border-color:var(--won-muted);color:var(--won-muted)}
+.filters button#edit-btn{background:var(--edit);color:var(--edit-fg);border-color:var(--edit);font-weight:600}
+.filters button#qb-btn{background:var(--surface);color:var(--closed-ink);border-color:var(--closed);font-weight:600}
+.filters button#qb-btn:disabled{opacity:.6;cursor:default}
+.filters button#add-btn{background:var(--closed);color:var(--closed-fg);border-color:var(--closed);font-weight:600}
+.lbl{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);align-self:center}
+.week{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;padding:4px 2px 0}
+.week h2{font-family:var(--display);font-size:1.05rem;margin:0}
+.week .n{color:var(--muted);font-size:.86rem;font-variant-numeric:tabular-nums}
+.list{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;flex-wrap:wrap;align-items:flex-start;gap:12px 18px;padding:16px 16px;background:var(--surface);border:1.5px solid var(--line);border-radius:12px;box-shadow:0 2px 8px rgba(11,21,51,.08)}
+.row.est{border-color:var(--closed)}
+.row.lost{border-color:var(--danger)}
+.row.closed{border-color:var(--won-line)}
+.row.est{background:var(--closed-bg)}
+.row.closed{background:var(--won-bg);color:var(--won-fg)}
+.row.closed .meta,.row.closed .dates,.row.closed .age,.row.closed .obs,.row.closed .lbl{color:var(--won-muted)}
+.row.closed .tel,.row.closed .val,.row.closed .name,.row.closed a.meta{color:var(--won-fg)}
+.row.closed .chip.src,.row.closed .chip.tmp{color:var(--won-fg)}
+.row.closed .therm .tr{background:rgba(255,255,255,.18)}
+.row.closed .count.ok{background:var(--won-fg);color:var(--won-bg)}
+.row.dead{opacity:.62}
+.row.lost{background:var(--danger-bg)}
+.row.lost .name{text-decoration:line-through;text-decoration-color:var(--danger)}
+.won{display:flex;align-items:center;gap:10px}
+.won{flex-wrap:wrap}
+.won img{height:170px;width:auto;max-width:100%;border-radius:12px;border:3px solid var(--won-muted);box-shadow:0 6px 16px rgba(0,0,0,.25)}
+@media (max-width:640px){.won img{height:140px}}
+.won .big{font-family:var(--display);font-weight:700;font-size:1.15rem;line-height:1.1}
+.won .big small{display:block;font-family:var(--body);font-weight:500;font-size:.8rem;color:var(--won-muted)}
+.info{flex:1 1 300px;min-width:0;display:flex;flex-direction:column;gap:6px}
+.head{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 12px}
+.name{font-weight:600;font-size:1.02rem;overflow-wrap:anywhere}
+.tel{font-weight:600;color:var(--accent);font-variant-numeric:tabular-nums;white-space:nowrap;user-select:all}
+.tel.none{color:var(--muted);font-weight:400;user-select:none}
+.meta{color:var(--muted);font-size:.86rem;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.obs{font-size:.9rem;overflow-wrap:anywhere}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:.76rem;font-weight:600;border-radius:999px;padding:2px 10px;background:hsl(var(--h) 80% var(--chip-l));color:hsl(var(--h) 75% var(--chip-fl))}
+.chip.src{background:transparent;border:1.5px solid hsl(var(--h) 70% 50%);color:var(--fg)}
+.chip.tmp{border:1.5px solid hsl(var(--h) 80% var(--therm-l));background:transparent;color:var(--fg)}
+.dates{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:.86rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.pill{display:inline-block;border-radius:6px;padding:1px 8px;font-weight:700;font-size:.82rem;white-space:nowrap}
+.pill.hot{background:var(--open-bg);color:var(--open-ink)}
+.pill.mid{background:var(--cold-bg);color:var(--cold-ink)}
+.pill.ok{background:var(--closed-bg);color:var(--closed-ink)}
+.pill.bad{background:var(--danger-bg);color:var(--danger-ink)}
+.pill.off{background:var(--track);color:var(--muted)}
+.nextstep{display:inline-block;width:max-content;max-width:100%;font-size:.86rem;border-radius:8px;padding:4px 10px;background:var(--open-bg);color:var(--open-ink);overflow-wrap:anywhere}
+.row.closed .nextstep{background:var(--won-fg);color:var(--won-bg)}
+.row.lost .nextstep,.row.dead .nextstep{background:var(--track);color:var(--muted)}
+.valline{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+.val{font-family:var(--display);font-variant-numeric:tabular-nums;font-weight:700;font-size:1.1rem}
+.row.est .val{color:var(--closed-ink)}
+.side{flex:0 1 330px;min-width:0;display:flex;flex-direction:column;gap:10px}
+@media (max-width:640px){.side{flex:1 1 100%}}
+.therm{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;font-size:.82rem;font-variant-numeric:tabular-nums}
+.therm .t{font-weight:600;color:hsl(var(--h) 80% var(--therm-l));white-space:nowrap}
+.therm .tr{height:8px;border-radius:999px;background:var(--track);overflow:hidden;min-width:60px}
+.therm .fl{height:100%;border-radius:999px;background:linear-gradient(90deg,hsl(215 70% var(--therm-l)),hsl(var(--h) 80% var(--therm-l)));width:var(--w)}
+.therm .age{color:var(--muted);white-space:nowrap}
+.count{font-size:.8rem;font-weight:600;border-radius:6px;padding:3px 8px;display:inline-block;width:max-content;max-width:100%}
+.count.p1{background:var(--open-bg);color:var(--open-ink)}
+.count.p2{background:var(--cold-bg);color:var(--cold-ink)}
+.count.p3{background:var(--track);color:var(--muted)}
+.count.ok{background:var(--closed-bg);color:var(--closed-ink)}
+.par{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.par button{font:inherit;font-size:.82rem;font-weight:500;text-align:left;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 8px;cursor:pointer;display:flex;align-items:center;gap:7px;min-width:0}
+.par button::before{content:"";flex:0 0 auto;width:16px;height:16px;border-radius:4px;border:1.5px solid var(--muted);background:transparent;display:inline-flex;align-items:center;justify-content:center;font-size:12px;line-height:1;font-weight:700}
+.par button[aria-checked="true"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.par button[aria-checked="true"]::before{content:"✕";border-color:var(--accent-fg);background:var(--accent-fg);color:var(--accent)}
+.par button.win[aria-checked="true"]{background:var(--closed);border-color:var(--closed);color:var(--closed-fg)}
+.par button.win[aria-checked="true"]::before{border-color:var(--closed-fg);background:var(--closed-fg);color:var(--closed)}
+.par button.bad[aria-checked="true"]{background:var(--danger);border-color:var(--danger);color:var(--danger-fg)}
+.par button.bad[aria-checked="true"]::before{border-color:var(--danger-fg);background:var(--danger-fg);color:var(--danger)}
+.par button span{min-width:0;overflow-wrap:anywhere}
+.par button:disabled{opacity:.6;cursor:default}
+.sugbtn{font:inherit;font-weight:600;font-size:.86rem;border-radius:999px;padding:7px 14px;cursor:pointer;background:var(--surface);color:var(--accent);border:1.5px solid var(--accent);width:max-content;max-width:100%}
+.sugbtn[aria-expanded="true"]{background:var(--accent);color:var(--accent-fg)}
+.sug{flex:1 1 100%;background:var(--sug-bg);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.sug h4{margin:0;font-family:var(--display);font-size:.95rem}
+.sug .blk{display:flex;flex-direction:column;gap:6px;min-width:0}
+.sug .hd{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px}
+.sug .hd .lbl{align-self:auto;color:var(--muted)}
+.sug .hd .acts{gap:6px}
+.sug pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;font-size:.9rem;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.sug .refl{font-size:.9rem;overflow-wrap:anywhere;border-left:3px solid var(--open);padding-left:10px}
+.sug .acts{align-items:center}
+.sug .hint{color:var(--muted);font-size:.8rem;margin:0}
+.sug textarea{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%;min-height:64px;resize:vertical}
+.ctxtab{font:inherit;font-size:.8rem;font-weight:600;border-radius:8px 8px 0 0;padding:5px 12px;cursor:pointer;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-bottom:0;width:max-content}
+.ctxtab[aria-expanded="true"]{background:var(--open-bg);color:var(--open-ink);border-color:var(--open)}
+.ctxbox{border:1px solid var(--line);border-radius:0 8px 8px 8px;padding:10px;display:flex;flex-direction:column;gap:8px;background:var(--surface)}
+.copy,.smslink{font:inherit;font-size:.8rem;font-weight:600;border-radius:999px;padding:4px 10px;cursor:pointer;background:var(--surface);color:var(--fg);border:1px solid var(--line);text-decoration:none;display:inline-block}
+.smslink{background:var(--closed);color:var(--closed-fg);border-color:var(--closed)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.empty{padding:28px 16px;text-align:center;color:var(--muted)}
+.note{color:var(--muted);font-size:.86rem;margin:0}
+.del{font:inherit;font-weight:600;border-radius:999px;padding:7px 14px;cursor:pointer;background:var(--surface);color:var(--danger);border:1px solid var(--danger)}
+.del.sure{background:var(--danger);color:var(--danger-fg)}
+.cancel{font:inherit;border-radius:999px;padding:7px 14px;cursor:pointer;background:var(--surface);color:var(--fg);border:1px solid var(--line)}
+.cancel[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.acts{display:flex;flex-wrap:wrap;gap:8px}
+.form{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.form input,.form select,.form textarea{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 10px;max-width:100%}
+.form input{width:170px} .form input[type="date"]{width:160px} .form textarea{width:100%;min-height:60px;resize:vertical}
+.form .wide{width:100%}
+.edit{display:flex;flex-direction:column;gap:8px;padding-top:6px;border-top:1px dashed var(--line);width:100%}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.card h3{margin:0;font-family:var(--display);font-size:1.05rem}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+.grid2 label{display:flex;flex-direction:column;gap:3px;font-size:.8rem;color:var(--muted)}
+.grid2 input,.grid2 select,.grid2 textarea{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 10px;width:100%}
+.grid2 .full{grid-column:1 / -1}
+.save{font:inherit;font-weight:600;border-radius:999px;padding:7px 16px;cursor:pointer;background:var(--accent);color:var(--accent-fg);border:1px solid var(--accent)}
+.save:disabled{opacity:.6;cursor:default}
+#msg{color:var(--open-ink);font-weight:500;margin:0}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;color:var(--muted);font-size:.8rem}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;vertical-align:-1px;margin-right:4px}
+@media (prefers-reduced-motion:no-preference){.therm .fl{transition:width .3s ease}}
+@media (max-width:520px){.stats{grid-template-columns:1fr 1fr}.par{grid-template-columns:1fr}}
+</style>
+<div class="wrap">
+  <div class="top" id="top">
+  <header class="brand">
+    <figure class="logo">
+      <!--LOGO-->
+      <!--MASCOT-->
+      <figcaption data-i18n="mascot">Tá na hora de responder</figcaption>
+    </figure>
+    <div>
+      <h1 data-i18n="title">Acompanhamento Semanal de Leads</h1>
+      <p class="sub" data-i18n="subtitle">Leads recentes agrupados por semana de entrada. Marque o parecer de cada contato, acompanhe o termômetro e priorize o follow-up.</p>
+      <p class="sub upd" id="upd">Última atualização: 12/10/2026</p>
+      <p class="sub upd" id="qbupd" hidden></p>
+      <div class="lang" role="group" aria-label="Idioma / Idioma / Language">
+        <button type="button" id="lang-pt" data-lang="pt" aria-pressed="true">PT</button>
+        <button type="button" id="lang-es" data-lang="es" aria-pressed="false">ES</button>
+        <button type="button" id="lang-en" data-lang="en" aria-pressed="false">EN</button>
+      </div>
+    </div>
+  </header>
+  <div class="gbar" id="gbar"></div>
+  </div>
+  <section class="gbody" id="gbody" hidden></section>
+  <section class="stats" aria-label="Resumo">
+    <div class="stat"><div class="k" data-i18n="st_leads">Leads</div><div class="v" id="s-all">0</div><div class="m" id="m-all"></div></div>
+    <div class="stat f"><div class="k" data-i18n="st_nc">Sem contato</div><div class="v" id="s-nc">0</div><div class="m" data-i18n="st_nc_m">nenhuma tentativa</div></div>
+    <div class="stat o"><div class="k" data-i18n="st_fu">Para follow-up</div><div class="v" id="s-fu">0</div><div class="m" data-i18n="st_fu_m">abertos, sem tentativa hoje</div></div>
+    <div class="stat p"><div class="k" data-i18n="st_est">Estimates</div><div class="v" id="s-est">0</div><div class="m" data-i18n="st_est_m">marcados, ainda abertos</div></div>
+    <div class="stat c"><div class="k" data-i18n="st_closed">Fechados</div><div class="v" id="s-c">0</div><div class="m" id="m-c"></div></div>
+  </section>
+  <div class="bar">
+    <div class="filters" role="group" aria-label="Mês" id="meses"><span class="lbl" data-i18n="f_month">Mês</span></div>
+    <div class="filters" role="group" aria-label="Semana" id="semanas"><span class="lbl" data-i18n="f_week">Semana</span></div>
+    <div class="filters" role="group" aria-label="Período">
+      <span class="lbl" data-i18n="f_entered">Entrou</span>
+      <button id="d-0" data-d="0" aria-pressed="true" data-i18n="all">Todos</button>
+      <button id="d-7" data-d="7" aria-pressed="false" data-i18n="last7">Últimos 7 dias</button>
+      <button id="d-15" data-d="15" aria-pressed="false" data-i18n="last15">Últimos 15 dias</button>
+      <button id="d-30" data-d="30" aria-pressed="false" data-i18n="last30">Últimos 30 dias</button>
+    </div>
+    <div class="filters" role="group" aria-label="Status">
+      <span class="lbl" data-i18n="f_status">Status</span>
+      <button id="f-all" data-f="all" aria-pressed="true" data-i18n="all">Todos</button>
+      <button id="f-nc" data-f="nc" aria-pressed="false" data-i18n="s_nc">Sem contato</button>
+      <button id="f-and" data-f="and" aria-pressed="false" data-i18n="s_and">Em andamento</button>
+      <button id="f-est" data-f="est" aria-pressed="false" data-i18n="s_est">Estimate marcado</button>
+      <button id="f-closed" data-f="closed" aria-pressed="false" data-i18n="s_closed">Fechados</button>
+      <button id="f-lost" data-f="lost" aria-pressed="false" data-i18n="s_lost">Perdidos</button>
+      <button id="f-dead" data-f="dead" aria-pressed="false" data-i18n="s_dead">Descartados</button>
+    </div>
+    <div class="filters" role="group" aria-label="Follow-up">
+      <span class="lbl" data-i18n="f_fu">Follow-up</span>
+      <button id="urg-btn" aria-pressed="false"><span data-i18n="urg_btn">Ação imediata</span> <span id="urg-n">(0)</span></button>
+      <button id="fu-btn" aria-pressed="false" data-i18n="fu_only">Só disponíveis para follow-up</button>
+    </div>
+    <div class="filters" role="group" aria-label="Estimates">
+      <span class="lbl" data-i18n="f_est">Estimates</span>
+      <button id="est-btn" aria-pressed="false" data-i18n="est_only">Só estimates em aberto</button>
+      <button id="print-btn" aria-pressed="false" data-i18n="print_mode">Resumo para print</button>
+    </div>
+    <div class="filters" role="group" aria-label="Termômetro">
+      <span class="lbl" data-i18n="f_therm">Termômetro</span>
+      <button id="t-all" data-t="all" aria-pressed="true" data-i18n="all">Todos</button>
+      <button id="t-q" data-t="Quente" aria-pressed="false" data-i18n="hot">Quente</button>
+      <button id="t-m" data-t="Morno" aria-pressed="false" data-i18n="warm">Morno</button>
+      <button id="t-f" data-t="Frio" aria-pressed="false" data-i18n="cold">Frio</button>
+    </div>
+    <div class="filters" role="group" aria-label="Origem" id="origens"><span class="lbl" data-i18n="f_source">Origem</span></div>
+    <div class="filters" role="group" aria-label="Serviço" id="servicos"><span class="lbl" data-i18n="f_service">Serviço</span></div>
+    <div class="filters" role="group" aria-label="Tags" id="tags"><span class="lbl" data-i18n="f_tags">Tags</span></div>
+    <div class="filters">
+      <button id="qb-btn" hidden data-i18n="qb_btn">Sincronizar QuickBooks + CRM</button>
+      <button id="add-btn" aria-pressed="false" data-i18n="new_lead">Novo lead</button>
+      <button id="edit-btn" aria-pressed="false" data-i18n="edit_list">Editar lista</button>
+    </div>
+  </div>
+  <section class="card" id="addcard" hidden aria-label="Novo lead">
+    <h3 data-i18n="new_lead">Novo lead</h3>
+    <form id="addform" class="grid2">
+      <label><span data-i18n="a_name">Nome</span><input id="a-nome" required></label>
+      <label><span data-i18n="a_tel">Telefone</span><input id="a-tel" type="tel" placeholder="(404) 000-0000"></label>
+      <label><span data-i18n="a_date">Data de entrada</span><input id="a-data" type="date" required></label>
+      <label><span data-i18n="f_source">Origem</span><select id="a-origem"><option>Facebook</option><option>Site</option><option>Landing page</option><option>GMB (ligação)</option><option>Ligação direta</option><option>CRM</option><option>Indicação</option><option>QuickBooks</option><option>Outro</option></select></label>
+      <label><span data-i18n="f_service">Serviço</span><input id="a-serv" placeholder="LVP, Laminate, Hardwood…"></label>
+      <label><span data-i18n="a_timing">Prazo</span><input id="a-prazo" placeholder="Immediate, Within a month…"></label>
+      <label><span data-i18n="a_temp">Temperatura inicial</span><select id="a-temp"><option value="" data-i18n="a_noscore">Sem score</option><option value="Quente" data-i18n="hot">Quente</option><option value="Morno" data-i18n="warm">Morno</option><option value="Frio" data-i18n="cold">Frio</option></select></label>
+      <label><span data-i18n="a_zip">CEP / cidade</span><input id="a-zip" placeholder="30062 · Marietta"></label>
+      <label class="full"><span data-i18n="a_tags">Tags (separe por vírgula)</span><input id="a-tags" placeholder="Prioridade, Degraus, Longe"></label>
+      <label class="full"><span data-i18n="a_obs">Observação</span><textarea id="a-obs"></textarea></label>
+      <div class="full acts"><button class="save" type="submit" id="a-save" data-i18n="a_add">Adicionar lead</button><button class="cancel" type="button" id="a-cancel" data-i18n="cancel">Cancelar</button></div>
+    </form>
+    <p class="note" id="a-msg" hidden></p>
+  </section>
+  <p id="msg" hidden></p>
+  <div class="legend" aria-label="Legenda"><span><i style="background:hsl(10 80% 50%)"></i><span data-i18n="lg_hot">Quente (75+)</span></span><span><i style="background:hsl(40 80% 50%)"></i><span data-i18n="lg_warm">Morno (45 a 74)</span></span><span><i style="background:hsl(215 70% 55%)"></i><span data-i18n="lg_cold">Frio (até 44)</span></span><span><i style="background:#d9f7e6;border:1px solid #08894a"></i><span data-i18n="lg_est">Verde claro: estimate marcado</span></span><span><i style="background:#0f6b3c"></i><span data-i18n="lg_won">Verde escuro: fechou</span></span><span data-i18n="lg_count">Regressivo: prioridade até 15 dias da entrada, depois janela de 30.</span></div>
+  <div id="list"><div class="empty" data-i18n="loading">Carregando os leads…</div></div>
+  <p class="note" data-i18n="footnote">Leads alimentados a partir do grupo do WhatsApp, do CRM e do QuickBooks. O termômetro combina o score do alerta, há quanto tempo o lead entrou e o parecer marcado. Marcar um parecer registra a data da tentativa (e do contato, quando houve resposta).</p>
+</div>
+<script>
+(function(){
+  var I18N={
+    pt:{mascot:'Tá na hora de responder',title:'Acompanhamento Semanal de Leads',subtitle:'Leads recentes agrupados por semana de entrada. Marque o parecer de cada contato, acompanhe o termômetro e priorize o follow-up.',upd:'Última atualização',
+      st_leads:'Leads',st_nc:'Sem contato',st_nc_m:'nenhuma tentativa',st_fu:'Para follow-up',st_fu_m:'abertos, sem tentativa hoje',st_est:'Estimates',st_est_m:'marcados, ainda abertos',st_closed:'Fechados',all_leads:'todos os leads',of_total:'de {n} no total',pct_leads:'{p}% dos leads',
+      f_month:'Mês',f_week:'Semana',f_entered:'Entrou',all:'Todos',last7:'Últimos 7 dias',last15:'Últimos 15 dias',last30:'Últimos 30 dias',f_status:'Status',s_nc:'Sem contato',s_and:'Em andamento',s_est:'Estimates em aberto',s_closed:'Fechados',s_dead:'Descartados',f_fu:'Follow-up',fu_only:'Só disponíveis para follow-up',f_therm:'Termômetro',hot:'Quente',warm:'Morno',cold:'Frio',f_source:'Origem',f_service:'Serviço',f_tags:'Tags',new_lead:'Novo lead',edit_list:'Editar lista',done_edit:'Concluir edição',
+      a_name:'Nome',a_tel:'Telefone',a_date:'Data de entrada',a_timing:'Prazo',a_temp:'Temperatura inicial',a_noscore:'Sem score',a_zip:'CEP / cidade',a_tags:'Tags (separe por vírgula)',a_obs:'Observação',a_add:'Adicionar lead',a_again:'Adicionar mesmo assim',cancel:'Cancelar',a_dup:'Já existe um lead parecido: {l}. Clique de novo para adicionar mesmo assim.',a_added:'{n} adicionado.',a_fail:'Não foi possível salvar {n}. Você pode estar com acesso só de leitura.',need_claude:'Abra esta página no Claude, com a conta conectada, para salvar mudanças.',
+      lg_hot:'Quente (75+)',lg_warm:'Morno (45 a 74)',lg_cold:'Frio (até 44)',lg_est:'Verde claro: estimate marcado',lg_won:'Verde escuro: fechou',lg_count:'Regressivo: prioridade até 15 dias da entrada, depois janela de 30.',loading:'Carregando os leads…',footnote:'Leads alimentados a partir do grupo do WhatsApp, do CRM e do QuickBooks. O termômetro combina o score do alerta, há quanto tempo o lead entrou e o parecer marcado. Marcar um parecer registra a data da tentativa (e do contato, quando houve resposta).',
+      empty_filter:'Nenhum lead neste filtro.',empty_period:'Nenhum lead neste período ou filtro.',empty_all:'Nenhum lead carregado ainda. Use “Novo lead” para cadastrar o primeiro.',open_in_claude:'Abra esta página no Claude para carregar os leads.',sign_in:'Entre na sua conta do Claude para carregar os leads.',conn_lost:'A conexão com os dados caiu. Recarregue a página.',
+      week_of:'Semana de {w}',week_n:'{n} leads · {f} para follow-up',week_1:'1 lead · {f} para follow-up',
+      p_naoAtendeu:'Não atendeu',p_textoEnviado:'Texto enviado',p_primeiroContato:'Primeiro contato feito',p_ligacaoNaoAtendeu:'Ligação feita, não me atendeu',p_marcouEstimate:'Marcou estimate',p_fechou:'Fechou',p_perdeu:'Fechou com outro',s_lost:'Perdidos',lost_:'Perdeu para concorrente',j_lost:'Fechou com outro',lost_n:'{n} perdidos',p_descartado:'Descartado / sem interesse',
+      entered:'Entrou {d}',at:'às {h}',today_in:'entrou hoje',ago:'há {n} dias',ago1:'há 1 dia',no_phone:'sem telefone',alert:'Alerta: {t}',last_contact:'Último contato: ',last_try:'Última tentativa: ',none_m:'nenhum',none_f:'nenhuma',d_today:'(hoje)',d_yest:'(ontem)',d_ago:'(há {n} dias)',open_crm:'Abrir no CRM',no_invoice:'sem invoice ainda',invoice:'Invoice #{n}',estimate:'Estimate #{n}',
+      won_big:'Fechou!',won_sub:'Pede o review e a indicação',closed_on:'Fechado em {d}',closed_:'Fechado',dead_:'Descartado',c15:'Prioridade: faltam {n} dias da janela de 15',c15_1:'Prioridade: falta 1 dia da janela de 15',c30:'Janela de 30: faltam {n} dias',c30_1:'Janela de 30: falta 1 dia',cout:'Fora da janela de 30 dias ({n} d)',age_d:'{n} d',age_today:'entrou hoje',no_date:'sem data',
+      sug_btn:'Sugestão de follow-up',sug_close:'Fechar sugestão',sug_sms:'Texto (SMS)',sug_call:'Roteiro de ligação',sug_refl:'Mini reflexão',sug_hint:'O texto vai em inglês, pronto para mandar ao lead. Roteiro e reflexão usam o contexto deste lead.',copy:'Copiar',copied:'Copiado',sms_open:'Abrir no Mensagens',sms_nophone:'Sem telefone para abrir o SMS',sug_ai:'Gerar com a Claude',sug_ai_wait:'Gerando…',sug_ai_fail:'Não deu para gerar agora. A sugestão pronta continua acima.',sug_ai_tag:'Gerado pela Claude com o contexto do lead.',
+      ctx_tab:'Me dê contexto',ctx_hint:'Escreva o que você sabe desse lead (o que conversaram, objeção, prazo, orçamento). O plano e a geração da Claude usam isso.',ctx_save:'Salvar contexto',ctx_saved:'Contexto salvo.',ctx_yours:'Seu contexto: ',
+      e_tel:'Telefone',e_save_tel:'Salvar telefone',e_zip:'CEP / cidade',e_save_zip:'Salvar CEP',e_val:'Valor ($)',e_est:'Nº do estimate',e_inv:'Nº da invoice',e_save_val:'Salvar valor',e_save_dates:'Salvar datas',e_save_tags:'Salvar tags',e_tags_ph:'Tags separadas por vírgula',e_obs:'Observação',e_save_obs:'Salvar observação',remove:'Remover',confirm_rm:'Confirmar remoção',save_fail:'Não foi possível salvar a mudança de {n}. Você pode estar com acesso só de leitura.',rm_fail:'Não foi possível remover {n}. Você pode estar com acesso só de leitura.',f_est:'Estimates',est_only:'Só estimates em aberto',v_visit:'Visita: ',v_none:'não marcada',v_in:'(em {n} dias)',v_in1:'(amanhã)',v_today:'(hoje)',v_past:'(há {n} dias)',v_sent:'Estimate enviado: ',v_notsent:'não enviado',v_fu:'Follow-up pós-estimate: ',v_fu_none:'nenhum ainda',v_next:'Próximo follow-up: ',v_fu_btn:'Follow-up feito hoje',v_msg:'Mensagem pronta',e_visit:'Data da visita',e_sent:'Estimate enviado em',e_fu:'Último follow-up pós-estimate',e_next:'Próximo follow-up',e_save_est:'Salvar datas do estimate',print_mode:'Resumo para print',print_back:'Voltar ao painel',pr_title:'Estimates em aberto',pr_lead:'Lead',pr_est:'Estimate',pr_sent:'Enviado',pr_reply:'Respondeu',pr_fu:'Último follow-up',pr_next:'Próximo passo',pr_therm:'Termômetro',pr_yes:'sim',pr_no:'não',pr_total:'em aberto',pr_none:'Nenhum estimate em aberto no filtro atual.',nx_call:'Ligar hoje: tirar dúvidas e pedir decisão',nx_text:'Texto confirmando que o estimate chegou',nx_date:'Oferecer data de início e fechar',nx_decide:'Ligação de decisão com data de início',nx_adjust:'Texto de ajuste ou fechamento',nx_react:'Reativar: foto de obra ou novidade',nx_label:'Próximo passo',urg_btn:'Ação imediata',urg_label:'Ação imediata',urg_new:'Lead novo sem retorno há {n} d',urg_new0:'Lead novo sem retorno (entrou hoje)',urg_est_nofu:'Estimate sem follow-up há {n} d',urg_visit_tmrw:'Confirmar a visita de amanhã',urg_fu_due:'Follow-up planejado vencido há {n} d',urg_nocontact:'Sem contato há {n} d',urg_noreply:'Sem resposta há {n} d',urg_lastfu:'Último follow-up há {n} d',urg_replied:'Respondeu o estimate: fechar data',urg_cadence:'Toque de cadência ({n} d)',st_fu_urg:'{n} com ação imediata',urg_group:'Ação imediata · do mais urgente ao menos',qb_btn:'Sincronizar QuickBooks + CRM',qb_running:'Sincronizando com o QuickBooks e o CRM…',qb_done:'Sincronizado com QuickBooks e CRM em {d}',crm_report:'CRM: {o} oportunidades lidas · {u} leads atualizados · {n} novos · {c} fechados',qb_report:'QuickBooks: {e} estimates e {i} invoices lidos · {u} leads atualizados · {n} novos · {c} fechados por invoice',qb_err_nc:'Adicione o conector {s} em claude.ai › Configurações › Conectores.',qb_err_reauth:'Reconecte o conector {s} em claude.ai › Configurações › Conectores.',qb_err_scope:'Você não permitiu o conector {s} para esta página. Libere nas permissões da página.',qb_err_down:'{s} indisponível agora. Tente de novo em instantes.',qb_err_tool:'{s} respondeu com erro: {m}',qb_err_other:'Não foi possível sincronizar ({c}).',nx_review:'Pedir review no Google e indicação',nx_lost:'Reativar em 60 a 90 dias com um texto leve',nx_dead:'Sem ação agora; texto leve a cada 30 a 45 dias',nx_visit:'Confirmar a visita por texto no dia anterior',nx_book:'Propor dois horários de visita',nx_call2:'Ligar em horário diferente do texto',nx_text_after_call:'Texto com nome e empresa; nova ligação no fim do dia',nx_now:'Ligar agora (regra dos 5 minutos)',nx_callfirst:'Ligar hoje e mandar texto com o portfólio',nx_last:'Último toque: texto "ainda faz sentido?" e marcar Frio',j_in:'Entrou',j_contact:'Contato',j_visit:'Visita',j_sent:'Estimate enviado',j_reply:'Respondeu',j_fu:'Follow-up',j_close:'Fechou',j_dead:'Descartado',j_pending:'pendente',j_noreply:'sem resposta há {n} d',j_nofu:'sem follow-up há {n} d',j_sched:'agendada',j_reply_btn:'Respondeu hoje',e_reply:'Estimate respondido em',g_title:'Regras do atendimento',g_more:'Ver guia completo',g_less:'Fechar guia',g_sit:'Situação → o que fazer agora',g_why:'Por quê',g_cad:'Cadência de contato (checklist)',g_cad_a:'Lead novo · 14 dias',g_cad_b:'Pós-estimate · 30 dias',g_call:'Ligação',g_text:'Texto',g_do:'O que funciona',g_dont:'O que não funciona',g_law:'Horário e consentimento (Georgia)',g_src:'Fontes',g_vendor:'dado de fornecedor',g_acad:'estudo acadêmico',g_survey:'pesquisa de mercado',g_gov:'órgão público'},
+    es:{mascot:'Es hora de responder',title:'Seguimiento Semanal de Leads',subtitle:'Leads recientes agrupados por semana de entrada. Marca el estado de cada contacto, sigue el termómetro y prioriza el seguimiento.',upd:'Última actualización',
+      st_leads:'Leads',st_nc:'Sin contacto',st_nc_m:'ningún intento',st_fu:'Para seguimiento',st_fu_m:'abiertos, sin intento hoy',st_est:'Presupuestos',st_est_m:'agendados, aún abiertos',st_closed:'Cerrados',all_leads:'todos los leads',of_total:'de {n} en total',pct_leads:'{p}% de los leads',
+      f_month:'Mes',f_week:'Semana',f_entered:'Entró',all:'Todos',last7:'Últimos 7 días',last15:'Últimos 15 días',last30:'Últimos 30 días',f_status:'Estado',s_nc:'Sin contacto',s_and:'En curso',s_est:'Presupuestos abiertos',s_closed:'Cerrados',s_dead:'Descartados',f_fu:'Seguimiento',fu_only:'Solo disponibles para seguimiento',f_therm:'Termómetro',hot:'Caliente',warm:'Tibio',cold:'Frío',f_source:'Origen',f_service:'Servicio',f_tags:'Etiquetas',new_lead:'Nuevo lead',edit_list:'Editar lista',done_edit:'Terminar edición',
+      a_name:'Nombre',a_tel:'Teléfono',a_date:'Fecha de entrada',a_timing:'Plazo',a_temp:'Temperatura inicial',a_noscore:'Sin puntaje',a_zip:'Código postal / ciudad',a_tags:'Etiquetas (separa por coma)',a_obs:'Observación',a_add:'Agregar lead',a_again:'Agregar de todos modos',cancel:'Cancelar',a_dup:'Ya existe un lead parecido: {l}. Haz clic de nuevo para agregarlo de todos modos.',a_added:'{n} agregado.',a_fail:'No se pudo guardar {n}. Puede que tengas acceso de solo lectura.',need_claude:'Abre esta página en Claude, con la cuenta conectada, para guardar cambios.',
+      lg_hot:'Caliente (75+)',lg_warm:'Tibio (45 a 74)',lg_cold:'Frío (hasta 44)',lg_est:'Verde claro: presupuesto agendado',lg_won:'Verde oscuro: cerró',lg_count:'Cuenta regresiva: prioridad hasta 15 días desde la entrada, luego ventana de 30.',loading:'Cargando los leads…',footnote:'Leads cargados desde el grupo de WhatsApp, el CRM y QuickBooks. El termómetro combina el puntaje de la alerta, cuánto hace que entró el lead y el estado marcado. Marcar un estado registra la fecha del intento (y del contacto, cuando hubo respuesta).',
+      empty_filter:'Ningún lead en este filtro.',empty_period:'Ningún lead en este período o filtro.',empty_all:'Aún no hay leads. Usa “Nuevo lead” para registrar el primero.',open_in_claude:'Abre esta página en Claude para cargar los leads.',sign_in:'Entra a tu cuenta de Claude para cargar los leads.',conn_lost:'Se perdió la conexión con los datos. Recarga la página.',
+      week_of:'Semana del {w}',week_n:'{n} leads · {f} para seguimiento',week_1:'1 lead · {f} para seguimiento',
+      p_naoAtendeu:'No contestó',p_textoEnviado:'Texto enviado',p_primeiroContato:'Primer contacto hecho',p_ligacaoNaoAtendeu:'Llamé, no me contestó',p_marcouEstimate:'Agendó presupuesto',p_fechou:'Cerró',p_perdeu:'Cerró con otro',s_lost:'Perdidos',lost_:'Perdió ante un competidor',j_lost:'Cerró con otro',lost_n:'{n} perdidos',p_descartado:'Descartado / sin interés',
+      entered:'Entró {d}',at:'a las {h}',today_in:'entró hoy',ago:'hace {n} días',ago1:'hace 1 día',no_phone:'sin teléfono',alert:'Alerta: {t}',last_contact:'Último contacto: ',last_try:'Último intento: ',none_m:'ninguno',none_f:'ninguno',d_today:'(hoy)',d_yest:'(ayer)',d_ago:'(hace {n} días)',open_crm:'Abrir en el CRM',no_invoice:'sin factura aún',invoice:'Factura #{n}',estimate:'Presupuesto #{n}',
+      won_big:'¡Cerró!',won_sub:'Pide la reseña y la recomendación',closed_on:'Cerrado el {d}',closed_:'Cerrado',dead_:'Descartado',c15:'Prioridad: faltan {n} días de la ventana de 15',c15_1:'Prioridad: falta 1 día de la ventana de 15',c30:'Ventana de 30: faltan {n} días',c30_1:'Ventana de 30: falta 1 día',cout:'Fuera de la ventana de 30 días ({n} d)',age_d:'{n} d',age_today:'entró hoy',no_date:'sin fecha',
+      sug_btn:'Sugerencia de seguimiento',sug_close:'Cerrar sugerencia',sug_sms:'Texto (SMS)',sug_call:'Guion de llamada',sug_refl:'Mini reflexión',sug_hint:'El texto va en inglés, listo para enviar al lead. El guion y la reflexión usan el contexto de este lead.',copy:'Copiar',copied:'Copiado',sms_open:'Abrir en Mensajes',sms_nophone:'Sin teléfono para abrir el SMS',sug_ai:'Generar con Claude',sug_ai_wait:'Generando…',sug_ai_fail:'No se pudo generar ahora. La sugerencia lista sigue arriba.',sug_ai_tag:'Generado por Claude con el contexto del lead.',
+      ctx_tab:'Dame contexto',ctx_hint:'Escribe lo que sabes de este lead (qué hablaron, objeción, plazo, presupuesto). El plan y la generación de Claude lo usan.',ctx_save:'Guardar contexto',ctx_saved:'Contexto guardado.',ctx_yours:'Tu contexto: ',
+      e_tel:'Teléfono',e_save_tel:'Guardar teléfono',e_zip:'Código postal / ciudad',e_save_zip:'Guardar código',e_val:'Valor ($)',e_est:'Nº de presupuesto',e_inv:'Nº de factura',e_save_val:'Guardar valor',e_save_dates:'Guardar fechas',e_save_tags:'Guardar etiquetas',e_tags_ph:'Etiquetas separadas por coma',e_obs:'Observación',e_save_obs:'Guardar observación',remove:'Eliminar',confirm_rm:'Confirmar eliminación',save_fail:'No se pudo guardar el cambio de {n}. Puede que tengas acceso de solo lectura.',rm_fail:'No se pudo eliminar {n}. Puede que tengas acceso de solo lectura.',f_est:'Presupuestos',est_only:'Solo presupuestos abiertos',v_visit:'Visita: ',v_none:'no agendada',v_in:'(en {n} días)',v_in1:'(mañana)',v_today:'(hoy)',v_past:'(hace {n} días)',v_sent:'Presupuesto enviado: ',v_notsent:'no enviado',v_fu:'Seguimiento pos-presupuesto: ',v_fu_none:'ninguno aún',v_next:'Próximo seguimiento: ',v_fu_btn:'Seguimiento hecho hoy',v_msg:'Mensaje listo',e_visit:'Fecha de la visita',e_sent:'Presupuesto enviado el',e_fu:'Último seguimiento pos-presupuesto',e_next:'Próximo seguimiento',e_save_est:'Guardar fechas del presupuesto',print_mode:'Resumen para captura',print_back:'Volver al panel',pr_title:'Presupuestos abiertos',pr_lead:'Lead',pr_est:'Presupuesto',pr_sent:'Enviado',pr_reply:'Respondió',pr_fu:'Último seguimiento',pr_next:'Próximo paso',pr_therm:'Termómetro',pr_yes:'sí',pr_no:'no',pr_total:'abiertos',pr_none:'Ningún presupuesto abierto en el filtro actual.',nx_call:'Llamar hoy: resolver dudas y pedir decisión',nx_text:'Texto confirmando que llegó el presupuesto',nx_date:'Ofrecer fecha de inicio y cerrar',nx_decide:'Llamada de decisión con fecha de inicio',nx_adjust:'Texto de ajuste o cierre',nx_react:'Reactivar: foto de obra o novedad',nx_label:'Próximo paso',urg_btn:'Acción inmediata',urg_label:'Acción inmediata',urg_new:'Lead nuevo sin respuesta hace {n} d',urg_new0:'Lead nuevo sin respuesta (entró hoy)',urg_est_nofu:'Presupuesto sin seguimiento hace {n} d',urg_visit_tmrw:'Confirmar la visita de mañana',urg_fu_due:'Seguimiento planeado vencido hace {n} d',urg_nocontact:'Sin contacto hace {n} d',urg_noreply:'Sin respuesta hace {n} d',urg_lastfu:'Último seguimiento hace {n} d',urg_replied:'Respondió el presupuesto: cerrar fecha',urg_cadence:'Toque de cadencia ({n} d)',st_fu_urg:'{n} con acción inmediata',urg_group:'Acción inmediata · de más a menos urgente',qb_btn:'Sincronizar QuickBooks + CRM',qb_running:'Sincronizando con QuickBooks y el CRM…',qb_done:'Sincronizado con QuickBooks y CRM el {d}',crm_report:'CRM: {o} oportunidades leídas · {u} leads actualizados · {n} nuevos · {c} cerrados',qb_report:'QuickBooks: {e} presupuestos y {i} facturas leídos · {u} leads actualizados · {n} nuevos · {c} cerrados por factura',qb_err_nc:'Agrega el conector {s} en claude.ai › Configuración › Conectores.',qb_err_reauth:'Reconecta el conector {s} en claude.ai › Configuración › Conectores.',qb_err_scope:'No permitiste el conector {s} para esta página. Habilítalo en los permisos de la página.',qb_err_down:'{s} no está disponible ahora. Intenta de nuevo en un momento.',qb_err_tool:'{s} respondió con error: {m}',qb_err_other:'No se pudo sincronizar ({c}).',nx_review:'Pedir reseña en Google y recomendación',nx_lost:'Reactivar en 60 a 90 días con un texto ligero',nx_dead:'Sin acción ahora; texto ligero cada 30 a 45 días',nx_visit:'Confirmar la visita por texto el día anterior',nx_book:'Proponer dos horarios de visita',nx_call2:'Llamar en un horario distinto al del texto',nx_text_after_call:'Texto con nombre y empresa; nueva llamada al final del día',nx_now:'Llamar ahora (regla de los 5 minutos)',nx_callfirst:'Llamar hoy y enviar texto con el portafolio',nx_last:'Último toque: texto "¿todavía tiene sentido?" y marcar Frío',j_in:'Entró',j_contact:'Contacto',j_visit:'Visita',j_sent:'Presupuesto enviado',j_reply:'Respondió',j_fu:'Seguimiento',j_close:'Cerró',j_dead:'Descartado',j_pending:'pendiente',j_noreply:'sin respuesta hace {n} d',j_nofu:'sin seguimiento hace {n} d',j_sched:'agendada',j_reply_btn:'Respondió hoy',e_reply:'Presupuesto respondido el',g_title:'Reglas de atención',g_more:'Ver guía completa',g_less:'Cerrar guía',g_sit:'Situación → qué hacer ahora',g_why:'Por qué',g_cad:'Cadencia de contacto (checklist)',g_cad_a:'Lead nuevo · 14 días',g_cad_b:'Pos-presupuesto · 30 días',g_call:'Llamada',g_text:'Texto',g_do:'Lo que funciona',g_dont:'Lo que no funciona',g_law:'Horario y consentimiento (Georgia)',g_src:'Fuentes',g_vendor:'dato de proveedor',g_acad:'estudio académico',g_survey:'encuesta de mercado',g_gov:'organismo público'},
+    en:{mascot:'Time to reply',title:'Weekly Lead Follow-up',subtitle:'Recent leads grouped by the week they came in. Tick the outcome of each contact, watch the thermometer and prioritize follow-up.',upd:'Last updated',
+      st_leads:'Leads',st_nc:'No contact',st_nc_m:'no attempt yet',st_fu:'Follow-up due',st_fu_m:'open, no attempt today',st_est:'Estimates',st_est_m:'booked, still open',st_closed:'Closed',all_leads:'all leads',of_total:'of {n} total',pct_leads:'{p}% of leads',
+      f_month:'Month',f_week:'Week',f_entered:'Came in',all:'All',last7:'Last 7 days',last15:'Last 15 days',last30:'Last 30 days',f_status:'Status',s_nc:'No contact',s_and:'In progress',s_est:'Open estimates',s_closed:'Closed',s_dead:'Discarded',f_fu:'Follow-up',fu_only:'Only due for follow-up',f_therm:'Thermometer',hot:'Hot',warm:'Warm',cold:'Cold',f_source:'Source',f_service:'Service',f_tags:'Tags',new_lead:'New lead',edit_list:'Edit list',done_edit:'Done editing',
+      a_name:'Name',a_tel:'Phone',a_date:'Date received',a_timing:'Timeline',a_temp:'Initial temperature',a_noscore:'No score',a_zip:'ZIP / city',a_tags:'Tags (comma separated)',a_obs:'Notes',a_add:'Add lead',a_again:'Add anyway',cancel:'Cancel',a_dup:'A similar lead already exists: {l}. Click again to add anyway.',a_added:'{n} added.',a_fail:'Could not save {n}. You may have read-only access.',need_claude:'Open this page in Claude, signed in, to save changes.',
+      lg_hot:'Hot (75+)',lg_warm:'Warm (45 to 74)',lg_cold:'Cold (up to 44)',lg_est:'Light green: estimate booked',lg_won:'Dark green: closed',lg_count:'Countdown: priority for 15 days after entry, then a 30-day window.',loading:'Loading leads…',footnote:'Leads come from the WhatsApp group, the CRM and QuickBooks. The thermometer combines the alert score, how long ago the lead came in and the outcome ticked. Ticking an outcome records the attempt date (and the contact date when the lead answered).',
+      empty_filter:'No leads match this filter.',empty_period:'No leads in this period or filter.',empty_all:'No leads yet. Use “New lead” to add the first one.',open_in_claude:'Open this page in Claude to load the leads.',sign_in:'Sign in to Claude to load the leads.',conn_lost:'Lost connection to the data. Reload the page.',
+      week_of:'Week of {w}',week_n:'{n} leads · {f} due for follow-up',week_1:'1 lead · {f} due for follow-up',
+      p_naoAtendeu:'No answer',p_textoEnviado:'Text sent',p_primeiroContato:'First contact made',p_ligacaoNaoAtendeu:'Called, no answer',p_marcouEstimate:'Estimate booked',p_fechou:'Closed',p_perdeu:'Closed with someone else',s_lost:'Lost',lost_:'Lost to a competitor',j_lost:'Closed with someone else',lost_n:'{n} lost',p_descartado:'Discarded / not interested',
+      entered:'Came in {d}',at:'at {h}',today_in:'came in today',ago:'{n} days ago',ago1:'1 day ago',no_phone:'no phone',alert:'Alert: {t}',last_contact:'Last contact: ',last_try:'Last attempt: ',none_m:'none',none_f:'none',d_today:'(today)',d_yest:'(yesterday)',d_ago:'({n} days ago)',open_crm:'Open in CRM',no_invoice:'no invoice yet',invoice:'Invoice #{n}',estimate:'Estimate #{n}',
+      won_big:'Closed!',won_sub:'Ask for the review and a referral',closed_on:'Closed on {d}',closed_:'Closed',dead_:'Discarded',c15:'Priority: {n} days left in the 15-day window',c15_1:'Priority: 1 day left in the 15-day window',c30:'30-day window: {n} days left',c30_1:'30-day window: 1 day left',cout:'Past the 30-day window ({n} d)',age_d:'{n} d',age_today:'came in today',no_date:'no date',
+      sug_btn:'Follow-up suggestion',sug_close:'Close suggestion',sug_sms:'Text (SMS)',sug_call:'Call script',sug_refl:'Quick take',sug_hint:'The text is in English, ready to send to the lead. The script and the take use this lead’s context.',copy:'Copy',copied:'Copied',sms_open:'Open in Messages',sms_nophone:'No phone number to open SMS',sug_ai:'Generate with Claude',sug_ai_wait:'Generating…',sug_ai_fail:'Could not generate right now. The ready-made suggestion is still above.',sug_ai_tag:'Generated by Claude from the lead’s context.',
+      ctx_tab:'Give me context',ctx_hint:'Write what you know about this lead (what you discussed, objection, timing, budget). The plan and Claude’s generation use it.',ctx_save:'Save context',ctx_saved:'Context saved.',ctx_yours:'Your context: ',
+      e_tel:'Phone',e_save_tel:'Save phone',e_zip:'ZIP / city',e_save_zip:'Save ZIP',e_val:'Value ($)',e_est:'Estimate #',e_inv:'Invoice #',e_save_val:'Save value',e_save_dates:'Save dates',e_save_tags:'Save tags',e_tags_ph:'Comma-separated tags',e_obs:'Notes',e_save_obs:'Save notes',remove:'Remove',confirm_rm:'Confirm removal',save_fail:'Could not save the change for {n}. You may have read-only access.',rm_fail:'Could not remove {n}. You may have read-only access.',f_est:'Estimates',est_only:'Only open estimates',v_visit:'Visit: ',v_none:'not booked',v_in:'(in {n} days)',v_in1:'(tomorrow)',v_today:'(today)',v_past:'({n} days ago)',v_sent:'Estimate sent: ',v_notsent:'not sent',v_fu:'Post-estimate follow-up: ',v_fu_none:'none yet',v_next:'Next follow-up: ',v_fu_btn:'Follow-up done today',v_msg:'Ready message',e_visit:'Visit date',e_sent:'Estimate sent on',e_fu:'Last post-estimate follow-up',e_next:'Next follow-up',e_save_est:'Save estimate dates',print_mode:'Print summary',print_back:'Back to dashboard',pr_title:'Open estimates',pr_lead:'Lead',pr_est:'Estimate',pr_sent:'Sent',pr_reply:'Replied',pr_fu:'Last follow-up',pr_next:'Next step',pr_therm:'Thermometer',pr_yes:'yes',pr_no:'no',pr_total:'open',pr_none:'No open estimates in the current filter.',nx_call:'Call today: answer questions, ask for a decision',nx_text:'Text confirming the estimate arrived',nx_date:'Offer a start date and close',nx_decide:'Decision call with a start date',nx_adjust:'Adjustment or closing text',nx_react:'Reactivate: job photo or news',nx_label:'Next step',urg_btn:'Immediate action',urg_label:'Immediate action',urg_new:'New lead, no reply for {n} d',urg_new0:'New lead, no reply (came in today)',urg_est_nofu:'Estimate with no follow-up for {n} d',urg_visit_tmrw:'Confirm tomorrow’s visit',urg_fu_due:'Planned follow-up overdue by {n} d',urg_nocontact:'No contact for {n} d',urg_noreply:'No reply for {n} d',urg_lastfu:'Last follow-up {n} d ago',urg_replied:'Replied to the estimate: close a date',urg_cadence:'Cadence touch ({n} d)',st_fu_urg:'{n} need immediate action',urg_group:'Immediate action · most urgent first',qb_btn:'Sync QuickBooks + CRM',qb_running:'Syncing with QuickBooks and the CRM…',qb_done:'Synced with QuickBooks and CRM on {d}',crm_report:'CRM: {o} opportunities read · {u} leads updated · {n} new · {c} closed',qb_report:'QuickBooks: {e} estimates and {i} invoices read · {u} leads updated · {n} new · {c} closed by invoice',qb_err_nc:'Add the {s} connector in claude.ai › Settings › Connectors.',qb_err_reauth:'Reconnect the {s} connector in claude.ai › Settings › Connectors.',qb_err_scope:'You did not allow the {s} connector for this page. Enable it in the page permissions.',qb_err_down:'{s} is unavailable right now. Try again shortly.',qb_err_tool:'{s} returned an error: {m}',qb_err_other:'Could not sync ({c}).',nx_review:'Ask for a Google review and a referral',nx_lost:'Reactivate in 60 to 90 days with a light text',nx_dead:'No action now; light text every 30 to 45 days',nx_visit:'Confirm the visit by text the day before',nx_book:'Offer two visit time slots',nx_call2:'Call at a different time than the text',nx_text_after_call:'Text with name and company; call again late in the day',nx_now:'Call now (5-minute rule)',nx_callfirst:'Call today and text the portfolio',nx_last:'Last touch: text "does this still make sense?" and mark Cold',j_in:'Came in',j_contact:'Contact',j_visit:'Visit',j_sent:'Estimate sent',j_reply:'Replied',j_fu:'Follow-up',j_close:'Closed',j_dead:'Discarded',j_pending:'pending',j_noreply:'no reply for {n} d',j_nofu:'no follow-up for {n} d',j_sched:'scheduled',j_reply_btn:'Replied today',e_reply:'Estimate replied on',g_title:'Sales response rules',g_more:'Open full guide',g_less:'Close guide',g_sit:'Situation → what to do now',g_why:'Why',g_cad:'Contact cadence (checklist)',g_cad_a:'New lead · 14 days',g_cad_b:'Post-estimate · 30 days',g_call:'Call',g_text:'Text',g_do:'What works',g_dont:'What does not work',g_law:'Hours and consent (Georgia)',g_src:'Sources',g_vendor:'vendor data',g_acad:'academic study',g_survey:'market survey',g_gov:'public agency'}
+  };
+  var lang='pt';
+  try{var sl=localStorage.getItem('leads-lang');if(sl&&I18N[sl])lang=sl;}catch(e){}
+  var GUIDE={
+    pt:{chips:[['≤ 5 min','1º retorno de lead novo (máx. 30)'],['Não atendeu','texto na hora + 2ª ligação hoje'],['6 tentativas','em 14 dias, depois 1 toque/mês'],['Estimate','follow-up em 24 h · D3 · D7 · D14'],['Fechou','review em 48 h'],['Só entre 8h e 21h','ligar e textar apenas nessa janela, no horário do cliente (Geórgia)']],
+      sit:[
+       {t:'Lead novo (0 a 30 min)',d:['Ligue agora, antes de qualquer outra coisa.','Não atendeu? Texto em até 1 minuto com nome, empresa e motivo.','2ª ligação no fim do dia, em horário diferente.'],w:'Responder em 5 minutos torna 21× mais provável qualificar o lead do que responder em 30 (MIT/InsideSales, 2007). Cada hora de atraso reduz em quase 7× a chance de uma conversa qualificada (HBR, 2011).'},
+       {t:'Passou de 30 min sem resposta',d:['Ligue mesmo assim e peça desculpa pela demora.','Texto com o portfólio no mesmo instante.','Agende a próxima tentativa para amanhã de manhã.'],w:'Na pesquisa da HBR, 23% das empresas nunca responderam e a média foi de 42 horas. Quem responde ainda hoje já está na frente da maioria.'},
+       {t:'Atendeu ou respondeu',d:['Qualifique em 3 perguntas: metragem, piso atual, prazo.','Proponha dois horários de visita.','Saia da conversa com dia, hora e endereço. Confirme por texto.'],w:'O cliente americano pede 2 a 3 orçamentos (63 a 66% dizem pedir três; ACHR News/Clear Seas, 2024). Quem faz a visita primeiro define a referência de preço.'},
+       {t:'Liguei e não atendeu / desligou',d:['Voicemail curto: nome, empresa e "vou mandar um texto".','Texto logo em seguida.','Próxima ligação em horário diferente (manhã ↔ fim de tarde). Nunca mais de 2 ligações no mesmo dia.'],w:'Texto depois de uma tentativa de contato eleva a conversão em 112%; texto antes de qualquer ligação reduz em 39% a chance de contato. Dois voicemails em seis ligações: +34% (Velocify, 3,5 milhões de leads).'},
+       {t:'Enviei o estimate',d:['Mesmo dia: texto confirmando que chegou e perguntando se ficou claro.','24 a 48 h: ligação para dúvidas e objeções.','Dia 7: ligação de decisão com data de início.','Dia 14: texto de ajuste ou fechamento. Depois, 1 toque a cada 30 dias.'],w:'O pico de conversão fica em torno de 6 contatos (Velocify). Estimate sem follow-up em 48 horas vira só comparação de preço.'},
+       {t:'Está para fechar',d:['Ofereça data de início concreta.','Lembre: sem pagamento adiantado.','Se houver margem, ajuste pequeno em troca de decisão hoje.','Confirme por texto e marque "Fechou" aqui.'],w:'Reduzir o risco percebido (data, pagamento, garantia do material) é o que destrava a decisão.'},
+       {t:'Fechou',d:['Review no Google em até 48 h.','Peça indicação de vizinho ou parente.','Foto da obra para o portfólio.'],w:'Indicação e review são os leads mais baratos que existem e alimentam o anúncio.'}],
+      cadA:[['D0',[['call','Ligação em até 5 min'],['text','Texto se não atender'],['call','2ª ligação no fim do dia']]],['D1',[['call','Ligação de manhã'],['text','Texto com portfólio']]],['D3',[['call','Ligação (voicemail curto)']]],['D5',[['text','Texto com prova social: foto de obra ou review']]],['D7',[['call','Ligação']]],['D10',[['text','Texto: "ainda faz sentido para você?"']]],['D14',[['call','Última ligação → marcar Frio; depois 1 texto por mês']]]],
+      cadB:[['D0',[['text','Texto confirmando recebimento do estimate']]],['D1–2',[['call','Ligação para dúvidas e objeções']]],['D3',[['text','Texto oferecendo data de início']]],['D7',[['call','Ligação de decisão']]],['D14',[['text','Texto de ajuste ou fechamento']]],['D30',[['text','Reativação: novidade, promoção, foto de obra']]]],
+      ok:['Ligar primeiro, textar depois.','Citar o projeto específico (piso, metragem, cidade).','Dar duas opções de horário, não perguntar "quando pode?".','Textos curtos, assinados com nome e empresa.','Registrar cada tentativa aqui no painel no mesmo dia.'],
+      no:['Texto antes de ligar (−39% de chance de contato).','Mais de 2 ligações no mesmo dia.','Só e-mail.','Esperar o cliente ligar de volta.','Ligar ou textar antes das 8h ou depois das 21h.','Mensagem genérica sem nome.'],
+      law:'Ligação e texto comercial só das 8h às 21h no horário do cliente (TCPA federal e orientação da Georgia Public Service Commission). Quem preencheu o formulário ou ligou deu permissão para contato; se pedir para parar, pare e registre aqui.',
+      src:[['acad','Oldroyd, McElheran e Elkington, "The Short Life of Online Sales Leads", Harvard Business Review, 2011 (cópia no repositório da BYU)','https://scholarsarchive.byu.edu/facpub/9711'],['acad','Oldroyd (MIT), Lead Response Management Study, 2007: 21× em 5 min vs 30 min (resumo)','https://ainora.lt/blog/lead-response-time-statistics-every-study-2026'],['vendor','Velocify, The Ultimate Contact Strategy: 6 ligações, voicemail, sequência','https://www.slideshare.net/Velocify/the-ultimate-contact-strategy'],['vendor','Velocify, Text Messaging for Better Sales Conversion: texto após contato +112%, antes −39%','https://www.slideshare.net/slideshow/text-messaging-for-better-sales-conversion-25969164/25969164'],['survey','ACHR News / Clear Seas Research, 2024: quantos orçamentos o dono de casa pede','https://achrnews.com/articles/155337-how-to-be-the-first-and-last-quote-a-homeowner-gets'],['survey','ArcSite, pesquisa com 1.000 donos de casa: 95% pedem mais de um orçamento','https://www.arcsite.com/blog/2022-homeowner-survey-report'],['gov','Georgia Public Service Commission, Telephone Solicitation: horário 8h–21h e consentimento','https://psc.ga.gov/about-the-psc/consumer-corner/telephone/consumer-rights/telephone-solicitation/'],['gov','TCPA: horário de silêncio e mensagens de marketing (análise jurídica, 2025)','https://www.privacyworld.blog/2025/03/new-class-action-threat-tcpa-quiet-hours-and-marketing-messages/']]},
+    es:{chips:[['≤ 5 min','1ª respuesta a lead nuevo (máx. 30)'],['No contestó','texto al instante + 2ª llamada hoy'],['6 intentos','en 14 días, luego 1 toque/mes'],['Presupuesto','seguimiento en 24 h · D3 · D7 · D14'],['Cerró','reseña en 48 h'],['Solo entre 8 y 21 h','llamar y textear solo en esa ventana, en el horario del cliente (Georgia)']],
+      sit:[
+       {t:'Lead nuevo (0 a 30 min)',d:['Llama ahora, antes que nada.','¿No contestó? Texto en 1 minuto con nombre, empresa y motivo.','2ª llamada al final del día, en otro horario.'],w:'Responder en 5 minutos hace 21× más probable calificar el lead que responder en 30 (MIT/InsideSales, 2007). Cada hora de demora reduce casi 7× la chance de una conversación calificada (HBR, 2011).'},
+       {t:'Pasaron 30 min sin respuesta',d:['Llama igual y pide disculpas por la demora.','Texto con el portafolio al instante.','Agenda el próximo intento para mañana por la mañana.'],w:'En el estudio de HBR, 23% de las empresas nunca respondió y el promedio fue 42 horas. Quien responde hoy ya está adelante.'},
+       {t:'Contestó o respondió',d:['Califica con 3 preguntas: metraje, piso actual, plazo.','Propón dos horarios de visita.','Termina con día, hora y dirección. Confirma por texto.'],w:'El cliente estadounidense pide 2 a 3 presupuestos (63 a 66% dicen pedir tres; ACHR News/Clear Seas, 2024). Quien visita primero fija la referencia de precio.'},
+       {t:'Llamé y no contestó / colgó',d:['Buzón corto: nombre, empresa y "te envío un texto".','Texto enseguida.','Próxima llamada en otro horario (mañana ↔ tarde). Nunca más de 2 llamadas el mismo día.'],w:'Texto después de un intento de contacto sube la conversión 112%; texto antes de cualquier llamada baja 39% la chance de contacto. Dos buzones en seis llamadas: +34% (Velocify, 3,5 millones de leads).'},
+       {t:'Envié el presupuesto',d:['Mismo día: texto confirmando que llegó y si quedó claro.','24 a 48 h: llamada para dudas y objeciones.','Día 7: llamada de decisión con fecha de inicio.','Día 14: texto de ajuste o cierre. Luego, 1 toque cada 30 días.'],w:'El pico de conversión está cerca de 6 contactos (Velocify). Un presupuesto sin seguimiento en 48 horas se vuelve solo comparación de precio.'},
+       {t:'Está por cerrar',d:['Ofrece fecha de inicio concreta.','Recuerda: sin pago adelantado.','Si hay margen, ajuste pequeño a cambio de decidir hoy.','Confirma por texto y marca "Cerró" aquí.'],w:'Reducir el riesgo percibido (fecha, pago, garantía del material) es lo que destraba la decisión.'},
+       {t:'Cerró',d:['Reseña en Google en 48 h.','Pide una recomendación.','Foto de la obra para el portafolio.'],w:'Recomendación y reseña son los leads más baratos que existen.'}],
+      cadA:[['D0',[['call','Llamada en 5 min'],['text','Texto si no contesta'],['call','2ª llamada al final del día']]],['D1',[['call','Llamada por la mañana'],['text','Texto con portafolio']]],['D3',[['call','Llamada (buzón corto)']]],['D5',[['text','Texto con prueba social: foto de obra o reseña']]],['D7',[['call','Llamada']]],['D10',[['text','Texto: "¿todavía tiene sentido?"']]],['D14',[['call','Última llamada → marcar Frío; luego 1 texto al mes']]]],
+      cadB:[['D0',[['text','Texto confirmando recepción del presupuesto']]],['D1–2',[['call','Llamada para dudas y objeciones']]],['D3',[['text','Texto ofreciendo fecha de inicio']]],['D7',[['call','Llamada de decisión']]],['D14',[['text','Texto de ajuste o cierre']]],['D30',[['text','Reactivación: novedad, promoción, foto de obra']]]],
+      ok:['Llamar primero, textear después.','Citar el proyecto específico (piso, metraje, ciudad).','Dar dos opciones de horario.','Textos cortos, firmados con nombre y empresa.','Registrar cada intento aquí el mismo día.'],
+      no:['Texto antes de llamar (−39% de chance de contacto).','Más de 2 llamadas el mismo día.','Solo e-mail.','Esperar que el cliente devuelva la llamada.','Llamar o textear antes de las 8 o después de las 21.','Mensaje genérico sin nombre.'],
+      law:'Llamadas y textos comerciales solo de 8 a 21 h en el horario del cliente (TCPA federal y guía de la Georgia Public Service Commission). Quien llenó el formulario o llamó dio permiso de contacto; si pide parar, para y regístralo aquí.',
+      src:[['acad','Oldroyd, McElheran y Elkington, "The Short Life of Online Sales Leads", Harvard Business Review, 2011 (copia en el repositorio de BYU)','https://scholarsarchive.byu.edu/facpub/9711'],['acad','Oldroyd (MIT), Lead Response Management Study, 2007: 21× en 5 min vs 30 min (resumen)','https://ainora.lt/blog/lead-response-time-statistics-every-study-2026'],['vendor','Velocify, The Ultimate Contact Strategy: 6 llamadas, buzón, secuencia','https://www.slideshare.net/Velocify/the-ultimate-contact-strategy'],['vendor','Velocify, Text Messaging for Better Sales Conversion: texto tras contacto +112%, antes −39%','https://www.slideshare.net/slideshow/text-messaging-for-better-sales-conversion-25969164/25969164'],['survey','ACHR News / Clear Seas Research, 2024: cuántos presupuestos pide el dueño de casa','https://achrnews.com/articles/155337-how-to-be-the-first-and-last-quote-a-homeowner-gets'],['survey','ArcSite, encuesta a 1.000 dueños de casa: 95% pide más de un presupuesto','https://www.arcsite.com/blog/2022-homeowner-survey-report'],['gov','Georgia Public Service Commission, Telephone Solicitation: horario 8–21 h y consentimiento','https://psc.ga.gov/about-the-psc/consumer-corner/telephone/consumer-rights/telephone-solicitation/'],['gov','TCPA: horas de silencio y mensajes de marketing (análisis legal, 2025)','https://www.privacyworld.blog/2025/03/new-class-action-threat-tcpa-quiet-hours-and-marketing-messages/']]},
+    en:{chips:[['≤ 5 min','first reply to a new lead (30 max)'],['No answer','text right away + 2nd call today'],['6 attempts','in 14 days, then 1 touch/month'],['Estimate','follow up at 24 h · D3 · D7 · D14'],['Closed','review within 48 h'],['Only 8am to 9pm','call or text only inside that window, customer’s local time (Georgia)']],
+      sit:[
+       {t:'New lead (0 to 30 min)',d:['Call now, before anything else.','No answer? Text within 1 minute with your name, company and reason.','2nd call late in the day, at a different hour.'],w:'Responding within 5 minutes makes it 21× more likely to qualify the lead than responding at 30 (MIT/InsideSales, 2007). Every hour of delay cuts the odds of a qualified conversation almost 7× (HBR, 2011).'},
+       {t:'30 min passed, no reply',d:['Call anyway and apologize for the delay.','Text the portfolio right away.','Schedule the next attempt for tomorrow morning.'],w:'In the HBR audit, 23% of companies never replied and the average was 42 hours. Replying today still beats most of the market.'},
+       {t:'They answered or replied',d:['Qualify with 3 questions: square footage, current floor, timeline.','Offer two visit slots.','End with day, time and address. Confirm by text.'],w:'US homeowners get 2 to 3 quotes (63 to 66% say three; ACHR News/Clear Seas, 2024). The first to visit sets the price reference.'},
+       {t:'Called, no answer / hung up',d:['Short voicemail: name, company and "I will text you".','Text right after.','Next call at a different hour (morning ↔ late afternoon). Never more than 2 calls the same day.'],w:'A text after a contact attempt lifts conversion 112%; a text before any call cuts the chance of contact 39%. Two voicemails across six calls: +34% (Velocify, 3.5 million leads).'},
+       {t:'Estimate sent',d:['Same day: text confirming it arrived and asking if it is clear.','24 to 48 h: call for questions and objections.','Day 7: decision call with a start date.','Day 14: adjustment or closing text. Then 1 touch every 30 days.'],w:'Conversion peaks around 6 contacts (Velocify). An estimate with no follow-up in 48 hours becomes a price comparison.'},
+       {t:'About to close',d:['Offer a concrete start date.','Remind: no upfront payment.','If there is room, a small adjustment in exchange for a decision today.','Confirm by text and tick "Closed" here.'],w:'Lowering perceived risk (date, payment, material warranty) is what unlocks the decision.'},
+       {t:'Closed',d:['Google review within 48 h.','Ask for a referral.','Job photo for the portfolio.'],w:'Referrals and reviews are the cheapest leads there are.'}],
+      cadA:[['D0',[['call','Call within 5 min'],['text','Text if no answer'],['call','2nd call late in the day']]],['D1',[['call','Morning call'],['text','Text with portfolio']]],['D3',[['call','Call (short voicemail)']]],['D5',[['text','Text with social proof: job photo or review']]],['D7',[['call','Call']]],['D10',[['text','Text: "does this still make sense for you?"']]],['D14',[['call','Last call → mark Cold; then 1 text a month']]]],
+      cadB:[['D0',[['text','Text confirming the estimate arrived']]],['D1–2',[['call','Call for questions and objections']]],['D3',[['text','Text offering a start date']]],['D7',[['call','Decision call']]],['D14',[['text','Adjustment or closing text']]],['D30',[['text','Reactivation: news, promotion, job photo']]]],
+      ok:['Call first, text second.','Name the specific project (floor, square footage, city).','Offer two time options.','Short texts signed with name and company.','Log every attempt here the same day.'],
+      no:['Texting before calling (−39% chance of contact).','More than 2 calls the same day.','Email only.','Waiting for the customer to call back.','Calling or texting before 8am or after 9pm.','Generic message with no name.'],
+      law:'Sales calls and texts only from 8am to 9pm in the customer’s time zone (federal TCPA and Georgia Public Service Commission guidance). Someone who filled the form or called gave permission to be contacted; if they ask you to stop, stop and log it here.',
+      src:[['acad','Oldroyd, McElheran and Elkington, "The Short Life of Online Sales Leads", Harvard Business Review, 2011 (copy in the BYU repository)','https://scholarsarchive.byu.edu/facpub/9711'],['acad','Oldroyd (MIT), Lead Response Management Study, 2007: 21× at 5 min vs 30 min (summary)','https://ainora.lt/blog/lead-response-time-statistics-every-study-2026'],['vendor','Velocify, The Ultimate Contact Strategy: 6 calls, voicemail, sequencing','https://www.slideshare.net/Velocify/the-ultimate-contact-strategy'],['vendor','Velocify, Text Messaging for Better Sales Conversion: text after contact +112%, before −39%','https://www.slideshare.net/slideshow/text-messaging-for-better-sales-conversion-25969164/25969164'],['survey','ACHR News / Clear Seas Research, 2024: how many quotes homeowners get','https://achrnews.com/articles/155337-how-to-be-the-first-and-last-quote-a-homeowner-gets'],['survey','ArcSite, survey of 1,000 homeowners: 95% get more than one bid','https://www.arcsite.com/blog/2022-homeowner-survey-report'],['gov','Georgia Public Service Commission, Telephone Solicitation: 8am–9pm and consent','https://psc.ga.gov/about-the-psc/consumer-corner/telephone/consumer-rights/telephone-solicitation/'],['gov','TCPA quiet hours and marketing messages (legal analysis, 2025)','https://www.privacyworld.blog/2025/03/new-class-action-threat-tcpa-quiet-hours-and-marketing-messages/']]}
+  };
+  var guideOpen=false;
+  function buildGuide(){
+    var g=GUIDE[lang]||GUIDE.pt,bar=document.getElementById('gbar'),body=document.getElementById('gbody');
+    bar.textContent='';
+    bar.appendChild(el('span','gt',t('g_title')));
+    g.chips.forEach(function(c){var x=el('span','gc');x.appendChild(el('b','',c[0]+' '));x.appendChild(document.createTextNode(c[1]));bar.appendChild(x);});
+    var tg=el('button','gtog',guideOpen?t('g_less'):t('g_more'));tg.type='button';tg.id='gtog';tg.setAttribute('aria-expanded',guideOpen?'true':'false');tg.setAttribute('aria-controls','gbody');
+    tg.addEventListener('click',function(){guideOpen=!guideOpen;buildGuide();if(guideOpen){var topH=document.getElementById('top').offsetHeight||bar.offsetHeight;window.scrollTo({top:body.getBoundingClientRect().top+window.scrollY-topH-12,behavior:'smooth'});}});
+    bar.appendChild(tg);
+    body.hidden=!guideOpen;
+    body.textContent='';
+    if(!guideOpen)return;
+    body.appendChild(el('h3','',t('g_sit')));
+    var gs=el('div','gsit');
+    g.sit.forEach(function(c,i){var cd=el('div','gcard');cd.appendChild(el('div','num',(i+1)+' / '+g.sit.length));cd.appendChild(el('h4','',c.t));var ol=el('ol');c.d.forEach(function(x){ol.appendChild(el('li','',x));});cd.appendChild(ol);cd.appendChild(el('div','why',t('g_why')+': '+c.w));gs.appendChild(cd);});
+    body.appendChild(gs);
+    body.appendChild(el('h3','',t('g_cad')));
+    var gc=el('div','gcad');
+    [[t('g_cad_a'),g.cadA],[t('g_cad_b'),g.cadB]].forEach(function(tr){
+      var tk=el('div','gtrack');tk.appendChild(el('div','th',tr[0]));
+      tr[1].forEach(function(row){var r=el('div','tr');r.appendChild(el('div','dd',row[0]));var ac=el('div','acts');row[1].forEach(function(a){var w=el('span','what');w.appendChild(el('span','ch '+a[0],a[0]==='call'?t('g_call'):t('g_text')));w.appendChild(document.createTextNode(' '+a[1]));ac.appendChild(w);});r.appendChild(ac);tk.appendChild(r);});
+      gc.appendChild(tk);
+    });
+    body.appendChild(gc);
+    var gd=el('div','gdo');
+    var ok=el('div','ok');ok.appendChild(el('h4','',t('g_do')));var ul1=el('ul');g.ok.forEach(function(x){ul1.appendChild(el('li','',x));});ok.appendChild(ul1);
+    var no=el('div','no');no.appendChild(el('h4','',t('g_dont')));var ul2=el('ul');g.no.forEach(function(x){ul2.appendChild(el('li','',x));});no.appendChild(ul2);
+    gd.appendChild(ok);gd.appendChild(no);body.appendChild(gd);
+    var law=el('div','glaw');law.appendChild(el('strong','',t('g_law')+'. '));law.appendChild(document.createTextNode(g.law));body.appendChild(law);
+    body.appendChild(el('h4','',t('g_src')));
+    var sr=el('div','gsrc');
+    g.src.forEach(function(x){var p=el('div');p.appendChild(el('span','tag',t('g_'+x[0])));var a=el('a','',x[1]);a.href=x[2];a.target='_blank';a.rel='noopener';p.appendChild(a);sr.appendChild(p);});
+    body.appendChild(sr);
+  }
+
+  function t(k,v){var s=(I18N[lang]&&I18N[lang][k])||I18N.pt[k]||k;if(v)Object.keys(v).forEach(function(x){s=s.split('{'+x+'}').join(String(v[x]));});return s;}
+  var DATE_LOCALE={pt:'pt-BR',es:'es-ES',en:'en-US'};
+  var ORIG_L={es:{'QuickBooks':'QuickBooks','Site':'Sitio web','GMB (ligação)':'GMB (llamada)','Ligação direta':'Llamada directa','Indicação':'Recomendación','Outro':'Otro'},en:{'Site':'Website','GMB (ligação)':'GMB (call)','Ligação direta':'Direct call','Indicação':'Referral','Outro':'Other'}};
+  var TAG_L={es:{'Prioridade':'Prioridad','Degraus':'Escaleras','Longe':'Lejos','Cotando concorrentes':'Cotizando competidores','Fora da área?':'¿Fuera del área?','Completar dados':'Completar datos','Importado do QuickBooks':'Importado de QuickBooks','Já recebeu valores':'Ya recibió precios','Estimate 15/10':'Presupuesto 15/10'},en:{'Prioridade':'Priority','Degraus':'Stairs','Longe':'Far away','Cotando concorrentes':'Shopping around','Fora da área?':'Out of area?','Completar dados':'Complete details','Importado do QuickBooks':'Imported from QuickBooks','Já recebeu valores':'Already got pricing','Estimate 15/10':'Estimate 10/15'}};
+  var PRAZO_L={pt:{'Immediate':'Imediato','Within a month':'Em até um mês','Still planning':'Ainda planejando'},es:{'Immediate':'Inmediato','Within a month':'Dentro de un mes','Still planning':'Aún planeando'}};
+  var SERV_RX={en:[[/Degraus \/ escada/g,'Stairs'],[/Carpete na escada/g,'Carpet on stairs'],[/preparo de escada/g,'stair prep'],[/escada opcional/g,'optional stairs'],[/remoção de piso/g,'floor removal'],[/escada/g,'stairs'],[/Degraus/g,'Stairs'],[/Carpete/g,'Carpet'],[/Instalação de laminate/g,'Laminate installation'],[/(\d)\.(\d{3})/g,'$1,$2']],
+               es:[[/Degraus \/ escada/g,'Escaleras'],[/Carpete na escada/g,'Alfombra en la escalera'],[/preparo de escada/g,'preparación de escalera'],[/escada opcional/g,'escalera opcional'],[/remoção de piso/g,'remoción de piso'],[/escada/g,'escalera'],[/Degraus/g,'Escaleras'],[/Carpete/g,'Alfombra'],[/Not sure yet/g,'Aún no sabe']]};
+  function oL(o){return (ORIG_L[lang]&&ORIG_L[lang][o])||o;}
+  function tgL(x){return (TAG_L[lang]&&TAG_L[lang][x])||x;}
+  function pzL(x){return (PRAZO_L[lang]&&PRAZO_L[lang][x])||x;}
+  function svL(x){var r=SERV_RX[lang];if(!r||!x)return x;r.forEach(function(p){x=x.replace(p[0],p[1]);});return x;}
+  function obsL(r){return (lang==='en'&&r.obs_en)||(lang==='es'&&r.obs_es)||r.obs||'';}
+  var WON_IMG=document.getElementById('won-src')?document.getElementById('won-src').getAttribute('data-src'):'';
+  var rows=[], filter='all', meses=[], semanas=[], dias=0, fuOnly=false, estOnly=false, printing=false, urgentOnly=false, mcpNs=null, qbBusy=false, temps=[], origens=[], servicos=[], tagsSel=[], db=null, sampler=null, editing=false, pending=null, adding=false, dupOk=false, openSug={}, openCtx={}, aiSug={}, updISO='';
+  var mesKey='', semKey='', oriKey='', serKey='', tagKey='';
+  var list=document.getElementById('list'), msg=document.getElementById('msg');
+  var PARECER=[
+    {k:'naoAtendeu',contact:false},
+    {k:'textoEnviado',contact:false},
+    {k:'primeiroContato',contact:true},
+    {k:'ligacaoNaoAtendeu',contact:false},
+    {k:'marcouEstimate',contact:true,cls:'win'},
+    {k:'fechou',contact:true,cls:'win'},
+    {k:'perdeu',contact:false,cls:'bad'},
+    {k:'descartado',contact:false,cls:'bad'}
+  ];
+  var ORIG_H={'QuickBooks':95,'Facebook':255,'Site':140,'Landing page':170,'GMB (ligação)':45,'Ligação direta':20,'CRM':300,'Indicação':120};
+  function hue(s){var h=0;for(var i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))%360;return h;}
+  function el(tag,cls,text){var e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;}
+  function say(s){msg.textContent=s||'';msg.hidden=!s;}
+  function money(n){return '$'+Number(n||0).toLocaleString(DATE_LOCALE[lang],{minimumFractionDigits:2,maximumFractionDigits:2});}
+  function iso(d){return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);}
+  function today(){return iso(new Date());}
+  function parse(s){var p=String(s||'').split('-');if(p.length!==3)return null;return new Date(Number(p[0]),Number(p[1])-1,Number(p[2]));}
+  function dmy(s){var p=String(s||'').split('-');if(p.length!==3)return '';return lang==='en'?p[1]+'/'+p[2]:p[2]+'/'+p[1];}
+  function dmyFull(s){var p=String(s||'').split('-');if(p.length!==3)return '';return lang==='en'?p[1]+'/'+p[2]+'/'+p[0]:p[2]+'/'+p[1]+'/'+p[0];}
+  function monthLabel(ym){var p=String(ym||'').split('-');if(p.length<2)return ym;var d=new Date(Number(p[0]),Number(p[1])-1,1);var m=d.toLocaleString(DATE_LOCALE[lang],{month:'long'});return m.charAt(0).toUpperCase()+m.slice(1)+' '+p[0];}
+  function daysSince(s){var d=parse(s);if(!d)return null;var x=new Date();x.setHours(0,0,0,0);return Math.round((x-d)/86400000);}
+  function weekStart(s){var d=parse(s);if(!d)return '';var wd=(d.getDay()+6)%7;d.setDate(d.getDate()-wd);return iso(d);}
+  function weekLabel(ws){var d=parse(ws);if(!d)return t('no_date');var e=new Date(d);e.setDate(e.getDate()+6);return dmy(iso(d))+' – '+dmy(iso(e));}
+  function digits(s){return String(s||'').replace(/\D/g,'').replace(/^1(?=\d{10}$)/,'');}
+  function isOpen(r){return !r.parecer.fechou&&!r.parecer.descartado&&!r.parecer.perdeu;}
+  function hasContact(r){return PARECER.some(function(p){return r.parecer[p.k];})||!!r.ultimaTentativa||!!r.ultimoContato;}
+  function followUp(r){return isOpen(r)&&r.ultimaTentativa!==today();}
+  function heat(r){
+    var p=r.parecer;
+    if(p.fechou)return 100;if(p.descartado||p.perdeu)return 0;
+    var h={Quente:70,Morno:50,Frio:30}[r.temperatura]||45;
+    var d=daysSince(r.data);
+    if(d==null)h+=0;else if(d<=3)h+=20;else if(d<=7)h+=10;else if(d<=15)h+=0;else if(d<=30)h-=12;else h-=25;
+    if(p.marcouEstimate)h+=25;else if(p.primeiroContato)h+=10;
+    if(p.naoAtendeu||p.ligacaoNaoAtendeu)h-=5;
+    var uc=daysSince(r.ultimoContato);if(uc!=null&&uc<=3)h+=5;
+    return Math.max(0,Math.min(100,h));
+  }
+  function heatKey(h){return h>=75?'Quente':(h>=45?'Morno':'Frio');}
+  function tempLabel(k){return k==='Quente'?t('hot'):(k==='Morno'?t('warm'):t('cold'));}
+  function heatHue(h){return Math.round(215-h*2.05);}
+  function datePill(s,none,open){
+    var n=daysSince(s);
+    if(n==null)return el('span','pill '+(open?'bad':'off'),none);
+    var cls=!open?'off':(n<=2?'ok':(n<=7?'hot':'bad'));
+    return el('span','pill '+cls,dmyFull(s)+' '+(n===0?t('d_today'):(n===1?t('d_yest'):t('d_ago',{n:n}))));
+  }
+  function isEst(r){return !!(r.parecer.marcouEstimate||r.estimate||r.dataEstimate||r.dataVisita);}
+  function isEstOpen(r){return isOpen(r)&&isEst(r);}
+  function statusOf(r){
+    if(r.parecer.fechou)return 'closed';if(r.parecer.perdeu)return 'lost';if(r.parecer.descartado)return 'dead';
+    if(isEst(r))return 'est';if(hasContact(r))return 'and';return 'nc';
+  }
+  function addDays(s,n){var d=parse(s);if(!d)return '';d.setDate(d.getDate()+n);return iso(d);}
+  function isUrgent(r){
+    if(!isOpen(r))return null;
+    var tdy=today(),tmr=addDays(tdy,1);
+    if(r.ultimaTentativa===tdy)return null;
+    if(r.dataVisita&&r.dataVisita>tmr)return null;
+    if(r.proxFollowUp&&r.proxFollowUp>tdy)return null;
+    var p=r.parecer,d=daysSince(r.data),sd=daysSince(r.dataEstimate),fu=daysSince(r.dataFollowUpEst),pf=daysSince(r.proxFollowUp),ut=daysSince(r.ultimaTentativa);
+    var contacted=hasContact(r);
+    if(r.dataVisita===tmr&&!(ut!=null&&ut<=1))return {n:3,k:'urg_visit_tmrw',v:0};
+    if(r.proxFollowUp&&pf!=null&&pf>=0)return {n:3,k:'urg_fu_due',v:pf};
+    if(!contacted&&d!=null&&d<=2)return {n:3,k:d===0?'urg_new0':'urg_new',v:d};
+    if(isEst(r)&&r.dataEstimate&&!r.dataResposta&&!r.dataFollowUpEst&&sd!=null&&sd>=2)return {n:3,k:'urg_est_nofu',v:sd};
+    if(isEst(r)&&r.dataResposta&&(!r.dataFollowUpEst||r.dataFollowUpEst<r.dataResposta))return {n:2,k:'urg_replied',v:daysSince(r.dataResposta)||0};
+    if(!contacted&&d!=null&&d<=14)return {n:2,k:'urg_nocontact',v:d};
+    if(isEst(r)&&r.dataFollowUpEst&&fu!=null&&fu>=7&&fu<30)return {n:2,k:'urg_lastfu',v:fu};
+    if(!isEst(r)&&(p.naoAtendeu||p.ligacaoNaoAtendeu||p.textoEnviado)&&!p.primeiroContato&&ut!=null&&ut>=2&&ut<=14)return {n:2,k:'urg_noreply',v:ut};
+    if(p.primeiroContato&&!isEst(r)&&!r.dataVisita&&ut!=null&&ut>=2&&ut<=14)return {n:2,k:'urg_noreply',v:ut};
+    if(!contacted&&d!=null&&d<=30)return {n:1,k:'urg_cadence',v:d};
+    if(isEst(r)&&sd!=null&&sd<=30&&(fu==null||fu>=7))return {n:1,k:'urg_cadence',v:sd};
+    if(contacted&&ut!=null&&ut>=10&&ut<=30)return {n:1,k:'urg_cadence',v:ut};
+    return null;
+  }
+  function urgText(u){return t(u.k,{n:u.v});}
+  function relDay(s){var n=daysSince(s);if(n==null)return '';if(n===0)return t('v_today');if(n<0)return n===-1?t('v_in1'):t('v_in',{n:-n});return t('v_past',{n:n});}
+  function visible(){
+    var corte='';
+    if(dias){var dt=new Date();dt.setDate(dt.getDate()-dias);corte=iso(dt);}
+    return rows.filter(function(r){
+      return (!corte||String(r.data||'')>=corte)
+        &&(!meses.length||meses.indexOf(String(r.data||'').slice(0,7))>=0)
+        &&(!estOnly||isEstOpen(r))
+        &&(!urgentOnly||!!isUrgent(r)||statusOf(r)==='closed')
+        &&(!semanas.length||semanas.indexOf(weekStart(r.data))>=0)
+        &&(!temps.length||temps.indexOf(heatKey(heat(r)))>=0)
+        &&(!origens.length||origens.indexOf(r.origem||'')>=0)
+        &&(!servicos.length||servicos.indexOf(r.servico||'')>=0)
+        &&(!tagsSel.length||r.tags.some(function(x){return tagsSel.indexOf(x)>=0;}));
+    });
+  }
+  function applyLang(){
+    document.documentElement.lang=lang==='pt'?'pt-BR':lang;
+    Array.prototype.forEach.call(document.querySelectorAll('[data-i18n]'),function(e){e.textContent=t(e.getAttribute('data-i18n'));});
+    ['pt','es','en'].forEach(function(l){document.getElementById('lang-'+l).setAttribute('aria-pressed',l===lang?'true':'false');});
+    Array.prototype.forEach.call(document.querySelectorAll('#a-origem option'),function(o){o.textContent=oL(o.value);});
+    document.getElementById('edit-btn').textContent=editing?t('done_edit'):t('edit_list');
+    document.getElementById('a-save').textContent=dupOk?t('a_again'):t('a_add');
+    document.getElementById('upd').textContent=t('upd')+': '+(updISO?dmyFull(updISO):dmyFull('2026-10-12'));
+    buildGuide();buildFilters(true);render();
+  }
+  ['pt','es','en'].forEach(function(l){
+    document.getElementById('lang-'+l).addEventListener('click',function(){lang=l;try{localStorage.setItem('leads-lang',l);}catch(e){}applyLang();});
+  });
+  function render(){
+    var inF=visible();
+    var nc=0,fu=0,est=0,c=0,mc=0;
+    var lost=0,urgN=0;inF.forEach(function(r){var s=statusOf(r);if(s==='nc')nc++;if(s==='est')est++;if(s==='lost')lost++;if(s==='closed'){c++;mc+=r.valor||0;}if(followUp(r))fu++;if(isUrgent(r))urgN++;});
+    var baseUrg=0;rows.forEach(function(r){if(isUrgent(r))baseUrg++;});
+    document.getElementById('urg-n').textContent='('+(urgentOnly?urgN:baseUrg)+')';
+    var fum=document.querySelector('.stat.o .m');if(fum)fum.textContent=t('st_fu_m')+(urgN?' · '+t('st_fu_urg',{n:urgN}):'');
+    document.getElementById('s-all').textContent=inF.length;
+    document.getElementById('m-all').textContent=rows.length===inF.length?t('all_leads'):t('of_total',{n:rows.length});
+    document.getElementById('s-nc').textContent=nc;
+    document.getElementById('s-fu').textContent=fu;
+    document.getElementById('s-est').textContent=est;
+    document.getElementById('s-c').textContent=c;
+    document.getElementById('m-c').textContent=(mc?money(mc)+' · ':'')+t('pct_leads',{p:inF.length?Math.round(100*c/inF.length):0})+(lost?' · '+t('lost_n',{n:lost}):'');
+    var shown=inF.filter(function(r){return (filter==='all'||statusOf(r)===filter)&&(!fuOnly||followUp(r));});
+    list.textContent='';
+    if(printing){list.appendChild(printEl(inF.filter(function(r){return isEstOpen(r)&&(!urgentOnly||isUrgent(r));})));return;}
+    if(!shown.length){
+      var box=el('div','list');var em=el('div','empty',rows.length?(inF.length?t('empty_filter'):t('empty_period')):t('empty_all'));em.style.background='var(--surface)';em.style.border='1px solid var(--line)';em.style.borderRadius='12px';box.appendChild(em);
+      list.appendChild(box);return;
+    }
+    var groups={},order=[];
+    shown.forEach(function(r){var k=weekStart(r.data);if(!groups[k]){groups[k]=[];order.push(k);}groups[k].push(r);});
+    order.sort().reverse();
+    order.forEach(function(k){
+      var g=groups[k];
+      if(urgentOnly)g.sort(function(a,b){var ua=isUrgent(a)||{n:0,v:0},ub=isUrgent(b)||{n:0,v:0};return ub.n-ua.n||ub.v-ua.v||heat(b)-heat(a);});
+      else g.sort(function(a,b){return heat(b)-heat(a)||String(b.data||'').localeCompare(String(a.data||''));});
+      var h=el('div','week');h.appendChild(el('h2','',t('week_of',{w:weekLabel(k)})));
+      var fuN=g.filter(followUp).length;
+      h.appendChild(el('span','n',g.length===1?t('week_1',{f:fuN}):t('week_n',{n:g.length,f:fuN})));
+      list.appendChild(h);
+      var box=el('div','list');
+      g.forEach(function(r){box.appendChild(rowEl(r));});
+      list.appendChild(box);
+    });
+  }
+  function rowEl(r){
+    var st=statusOf(r);
+    var row=el('div','row'+(st==='closed'?' closed':'')+(st==='est'?' est':'')+(st==='dead'?' dead':'')+(st==='lost'?' lost':''));
+    var info=el('div','info');
+    var head=el('div','head');
+    head.appendChild(el('div','name',r.nome));
+    head.appendChild(el('span',r.tel?'tel':'tel none',r.tel||t('no_phone')));
+    if(r.email)head.appendChild(el('span','meta',r.email));
+    info.appendChild(head);
+    var ug=isUrgent(r);if(ug){info.appendChild(el('div','urg l'+ug.n,t('urg_label')+' · '+urgText(ug)));}
+    var ns=el('div','nextstep');ns.appendChild(el('b','',t('nx_label')+': '));ns.appendChild(document.createTextNode(nextStep(r)));info.appendChild(ns);
+    var d=daysSince(r.data);
+    var meta=el('div','meta');
+    meta.appendChild(document.createTextNode(t('entered',{d:dmy(r.data)})+(r.hora?' '+t('at',{h:r.hora}):'')+' '));
+    if(d!=null){meta.appendChild(el('span','pill '+(d<=3?'hot':(d<=15?'mid':'off')),d===0?t('today_in'):(d===1?t('ago1'):t('ago',{n:d}))));}
+    var rest=[svL(r.servico),pzL(r.prazo),r.zip].filter(Boolean).join(' · ');
+    if(rest)meta.appendChild(document.createTextNode(' · '+rest));
+    info.appendChild(meta);
+    var ch=el('div','chips');
+    if(r.temperatura){var tc=el('span','chip tmp',t('alert',{t:tempLabel(r.temperatura)}));tc.style.setProperty('--h',r.temperatura==='Quente'?10:(r.temperatura==='Morno'?40:215));ch.appendChild(tc);}
+    if(r.origem){var oc=el('span','chip src',oL(r.origem));oc.style.setProperty('--h',ORIG_H[r.origem]!=null?ORIG_H[r.origem]:hue(r.origem));ch.appendChild(oc);}
+    r.tags.forEach(function(x){var c=el('span','chip',tgL(x));c.style.setProperty('--h',hue(x));ch.appendChild(c);});
+    if(ch.children.length)info.appendChild(ch);
+    var dates=el('div','dates');
+    var uc=el('span','',''),ut=el('span','','');
+    uc.appendChild(document.createTextNode(t('last_contact')));uc.appendChild(datePill(r.ultimoContato,t('none_m'),isOpen(r)));
+    ut.appendChild(document.createTextNode(t('last_try')));ut.appendChild(datePill(r.ultimaTentativa,t('none_f'),isOpen(r)));
+    dates.appendChild(uc);dates.appendChild(ut);
+    info.appendChild(dates);
+    info.appendChild(journeyEl(r));
+    if(isEstOpen(r)){
+      var es=el('div','estrip');
+      var fb2=el('button','fub',t('v_fu_btn'));fb2.type='button';fb2.id='fue-'+r.id;
+      fb2.addEventListener('click',function(){var d0=today();write(r,{dataFollowUpEst:d0,ultimaTentativa:d0},fb2);});
+      es.appendChild(fb2);
+      if(!r.dataResposta){var rb=el('button','fub',t('j_reply_btn'));rb.type='button';rb.id='rep-'+r.id;rb.style.background='var(--accent)';rb.style.borderColor='var(--accent)';rb.style.color='var(--accent-fg)';
+        rb.addEventListener('click',function(){var d0=today();write(r,{dataResposta:d0,ultimoContato:d0,ultimaTentativa:d0},rb);});es.appendChild(rb);}
+      if(r.proxFollowUp){var nx=el('span','');nx.appendChild(document.createTextNode(t('v_next')));var nn=daysSince(r.proxFollowUp);nx.appendChild(el('span','pill '+(nn>=0?'bad':'mid'),dmyFull(r.proxFollowUp)+' '+relDay(r.proxFollowUp)));es.appendChild(nx);}
+      var sg=aiSug[r.id]&&aiSug[r.id].lang===lang&&aiSug[r.id].sms?aiSug[r.id]:buildSug(r);
+      var mg=el('div','msg'),mh=el('div','hd');mh.appendChild(el('span','lbl',t('v_msg')));
+      var ma=el('div','acts');var dg0=digits(r.tel);
+      if(dg0.length===10){var sl0=el('a','smslink',t('sms_open'));sl0.id='esms-'+r.id;sl0.href='sms:+1'+dg0+'?&body='+encodeURIComponent(sg.sms);ma.appendChild(sl0);}
+      ma.appendChild(copyBtn(function(){return sg.sms;},'ecp-'+r.id));
+      mh.appendChild(ma);mg.appendChild(mh);mg.appendChild(el('pre','',sg.sms));
+      if(dg0.length!==10)mg.appendChild(el('span','hint',t('sms_nophone')));
+      es.appendChild(mg);
+      info.appendChild(es);
+    }
+    if(r.valor||r.invoice||r.estimate){
+      var vl=el('div','valline');
+      if(r.valor)vl.appendChild(el('span','val',money(r.valor)));
+      var ref=[r.invoice?t('invoice',{n:r.invoice}):'',r.estimate?t('estimate',{n:r.estimate}):''].filter(Boolean).join(' · ');
+      if(ref)vl.appendChild(el('span','meta',ref));
+      else if(r.parecer.fechou)vl.appendChild(el('span','meta',t('no_invoice')));
+      info.appendChild(vl);
+    }
+    if(obsL(r))info.appendChild(el('div','obs',obsL(r)));
+    if(r.crm){var a=el('a','meta',t('open_crm'));a.href=r.crm;a.target='_blank';a.rel='noopener';info.appendChild(a);}
+    if(editing)info.appendChild(editEl(r));
+    row.appendChild(info);
+    var side=el('div','side');
+    if(st==='closed'){
+      var won=el('div','won');
+      if(WON_IMG){var wi=document.createElement('img');wi.src=WON_IMG;wi.alt='';won.appendChild(wi);}
+      var big=el('div','big',t('won_big'));big.appendChild(el('small','',t('won_sub')));won.appendChild(big);
+      side.appendChild(won);
+    }
+    var hv=heat(r),hh=heatHue(hv);
+    var th=el('div','therm');th.style.setProperty('--h',hh);
+    th.appendChild(el('span','t',tempLabel(heatKey(hv))+' '+hv));
+    var tr=el('div','tr');var fl=el('div','fl');fl.style.setProperty('--w',hv+'%');tr.appendChild(fl);th.appendChild(tr);
+    th.appendChild(el('span','age',d!=null?(d===0?t('age_today'):t('age_d',{n:d})):t('no_date')));
+    side.appendChild(th);
+    if(st==='closed')side.appendChild(el('span','count ok',r.ultimoContato?t('closed_on',{d:dmy(r.ultimoContato)}):t('closed_')));
+    else if(st==='dead')side.appendChild(el('span','count p3',t('dead_')));
+    else if(st==='lost')side.appendChild(el('span','count p3',t('lost_')));
+    else if(d!=null){
+      if(d<15)side.appendChild(el('span','count p1',15-d===1?t('c15_1'):t('c15',{n:15-d})));
+      else if(d<30)side.appendChild(el('span','count p2',30-d===1?t('c30_1'):t('c30',{n:30-d})));
+      else side.appendChild(el('span','count p3',t('cout',{n:d})));
+    }
+    var par=el('div','par');par.setAttribute('role','group');par.setAttribute('aria-label',r.nome);
+    PARECER.forEach(function(p){
+      var b=el('button','',null);b.type='button';b.id='p-'+p.k+'-'+r.id;b.className=p.cls||'';
+      b.setAttribute('role','checkbox');b.setAttribute('aria-checked',r.parecer[p.k]?'true':'false');
+      b.appendChild(el('span','',t('p_'+p.k)));
+      b.addEventListener('click',function(){togglePar(r,p,b);});
+      par.appendChild(b);
+    });
+    side.appendChild(par);
+    var sb=el('button','sugbtn',openSug[r.id]?t('sug_close'):t('sug_btn'));sb.type='button';sb.id='sug-'+r.id;
+    sb.setAttribute('aria-expanded',openSug[r.id]?'true':'false');
+    sb.addEventListener('click',function(){openSug[r.id]=!openSug[r.id];render();});
+    side.appendChild(sb);
+    row.appendChild(side);
+    if(openSug[r.id])row.appendChild(sugEl(r));
+    return row;
+  }
+
+  function nextStep(r){
+    var p=r.parecer,st=statusOf(r),sd=daysSince(r.dataEstimate),d=daysSince(r.data),tdy=today();
+    if(st==='closed')return t('nx_review');
+    if(st==='lost')return t('nx_lost');
+    if(st==='dead')return t('nx_dead');
+    if(!isEst(r)){
+      if(r.dataVisita&&r.dataVisita>tdy)return t('nx_visit');
+      if(p.primeiroContato)return t('nx_book');
+      if(p.naoAtendeu||p.ligacaoNaoAtendeu)return t('nx_text_after_call');
+      if(p.textoEnviado)return t('nx_call2');
+      if(d==null||d<=1)return t('nx_now');
+      if(d<=14)return t('nx_callfirst');
+      return t('nx_last');
+    }
+    if(r.dataVisita&&r.dataVisita>tdy&&!r.dataEstimate)return t('nx_visit');
+    if(!r.dataEstimate)return t('nx_text');
+    if(sd!=null&&sd<=1&&!r.dataFollowUpEst)return t('nx_text');
+    if(r.dataResposta)return t('nx_date');
+    if(sd!=null&&sd>=30)return t('nx_react');
+    if(sd!=null&&sd>=14)return t('nx_adjust');
+    if(sd!=null&&sd>=7)return t('nx_decide');
+    return t('nx_call');
+  }
+  function printEl(items){
+    var box=el('div','printtab');
+    var ph=el('div','ph');
+    var tot=0;items.forEach(function(r){tot+=r.valor||0;});
+    ph.appendChild(el('h2','',t('pr_title')+' · '+dmyFull(today())));
+    ph.appendChild(el('span','meta',items.length+' leads · '+money(tot)+' '+t('pr_total')));
+    var back=el('button','back',t('print_back'));back.type='button';back.id='print-back';back.addEventListener('click',function(){setPrint(false);});
+    ph.appendChild(back);box.appendChild(ph);
+    if(!items.length){box.appendChild(el('div','empty',t('pr_none')));return box;}
+    items.sort(function(a,b){return String(a.dataEstimate||a.data).localeCompare(String(b.dataEstimate||b.data));});
+    var tw=el('div','tw'),tb=document.createElement('table'),thead=document.createElement('thead'),trh=document.createElement('tr');
+    [t('pr_lead'),t('pr_est'),t('pr_sent'),t('pr_reply'),t('pr_fu'),t('pr_next'),t('pr_therm')].forEach(function(h){trh.appendChild(el('th','',h));});
+    thead.appendChild(trh);tb.appendChild(thead);
+    var tbody=document.createElement('tbody');
+    items.forEach(function(r){
+      var tr=document.createElement('tr');
+      var c1=el('td');c1.appendChild(el('span','nm',r.nome));c1.appendChild(el('span','tl',r.tel||t('no_phone')));tr.appendChild(c1);
+      var c2=el('td');if(r.valor)c2.appendChild(el('span','vl',money(r.valor)));c2.appendChild(el('span','meta',(r.estimate?' #'+r.estimate:'')+(r.servico?' · '+svL(r.servico):'')));tr.appendChild(c2);
+      var c3=el('td');c3.appendChild(datePill(r.dataEstimate||r.data,t('v_notsent'),true));tr.appendChild(c3);
+      var c4=el('td');c4.appendChild(r.dataResposta?el('span','pill ok',t('pr_yes')+' '+dmy(r.dataResposta)):el('span','pill bad',t('pr_no')));tr.appendChild(c4);
+      var c5=el('td');c5.appendChild(datePill(r.dataFollowUpEst,t('v_fu_none'),true));tr.appendChild(c5);
+      var c6=el('td');c6.textContent=nextStep(r);tr.appendChild(c6);
+      var hv=heat(r);var c7=el('td');var ht=el('span','ht',tempLabel(heatKey(hv))+' '+hv);ht.style.color='hsl('+heatHue(hv)+' 80% var(--therm-l))';c7.appendChild(ht);tr.appendChild(c7);
+      tbody.appendChild(tr);
+    });
+    tb.appendChild(tbody);tw.appendChild(tb);box.appendChild(tw);
+    return box;
+  }
+  function journeyEl(r){
+    var p=r.parecer,open=isOpen(r),tdy=today();
+    var sentD=daysSince(r.dataEstimate),sent=!!(r.dataEstimate||r.estimate);
+    var steps=[
+      {k:'j_in',date:r.data,st:'done'},
+      {k:'j_contact',date:r.ultimoContato,st:(p.primeiroContato||r.ultimoContato)?'done':'pend'},
+      {k:'j_visit',date:r.dataVisita,st:r.dataVisita?(r.dataVisita<=tdy?'done':'sched'):'pend',sub:r.dataVisita&&r.dataVisita>tdy?t('j_sched'):''},
+      {k:'j_sent',date:r.dataEstimate,st:sent?'done':'pend'},
+      {k:'j_reply',date:r.dataResposta,st:r.dataResposta?'done':(sent&&open&&sentD!=null&&sentD>=2?'over':'pend'),sub:(!r.dataResposta&&sent&&open&&sentD!=null&&sentD>=2)?t('j_noreply',{n:sentD}):''},
+      {k:'j_fu',date:r.dataFollowUpEst,st:r.dataFollowUpEst?'done':(sent&&open&&sentD!=null&&sentD>=2?'over':'pend'),sub:(!r.dataFollowUpEst&&sent&&open&&sentD!=null&&sentD>=2)?t('j_nofu',{n:sentD}):''},
+      p.perdeu?{k:'j_lost',date:r.ultimaTentativa,st:'dead'}:(p.descartado?{k:'j_dead',date:r.ultimaTentativa,st:'dead'}:{k:'j_close',date:p.fechou?r.ultimoContato:'',st:p.fechou?'won':'pend'})
+    ];
+    if(open){for(var i=0;i<steps.length;i++){if(steps[i].st==='pend'){steps[i].st='next';break;}if(steps[i].st==='over')break;}}
+    var wrap=el('div','jwrap'),jr=el('div','journey');jr.setAttribute('role','list');
+    steps.forEach(function(st){
+      var n=el('div','jn '+st.st);n.setAttribute('role','listitem');
+      n.appendChild(el('span','dot'));
+      n.appendChild(el('span','l',t(st.k)));
+      n.appendChild(el('span','d',st.sub||(st.date?dmy(st.date):(st.st==='pend'||st.st==='next'?t('j_pending'):''))));
+      jr.appendChild(n);
+    });
+    wrap.appendChild(jr);return wrap;
+  }
+  /* ---------- Sugestão de follow-up (contexto do lead) ---------- */
+  function firstName(n){var s=String(n||'').replace(/\(.*?\)/g,'').trim().split(/\s+/)[0]||'';return /^(lead|sem|<)/i.test(s)?'':s;}
+  function serviceEn(r){var s=(r.servico||'').toLowerCase();
+    if(/lvp|vinyl/.test(s))return 'LVP (luxury vinyl plank)';if(/lamin/.test(s))return 'laminate flooring';if(/hardwood|madeira/.test(s))return 'hardwood flooring';
+    if(/degrau|escada|stair|carpet/.test(s))return 'stairs';if(s)return r.servico;return 'flooring';}
+  function hasTag(r,x){return r.tags.some(function(g){return g.toLowerCase().indexOf(x)>=0;});}
+  function buildSug(r){
+    var fn=firstName(r.nome),hi='Hi'+(fn?' '+fn:'')+', ',sv=serviceEn(r),p=r.parecer,st=statusOf(r),d=daysSince(r.data)||0;
+    var est=r.estimate?' (#'+r.estimate+')':'',val=r.valor?' for '+money(r.valor):'';
+    var shop=hasTag(r,'cotando')||hasTag(r,'concorr')||hasTag(r,'empire'),far=hasTag(r,'longe')||hasTag(r,'fora da')||hasTag(r,'far'),quoted=hasTag(r,'valores')||hasTag(r,'quoted');
+    var sms,call=[],refl=[];
+    var L=lang;
+    function pick(pt,es,en){return L==='es'?es:(L==='en'?en:pt);}
+    var recent=d<=3,imm=/immediate|asap|imediat/i.test(r.prazo||''),plan=/plan/i.test(r.prazo||'');
+    var tent=daysSince(r.ultimaTentativa);
+    if(st==='closed'){
+      sms=hi+'thank you again for choosing USA VIP Floors! If you are happy with your new '+sv+', a quick Google review would mean a lot to us. And if you know anyone who needs flooring, we would love the referral. Flavio';
+      call=[pick('Agradecer pela confiança e perguntar como ficou o piso.','Agradecer la confianza y preguntar cómo quedó el piso.','Thank them and ask how the floor turned out.'),
+            pick('Pedir a avaliação no Google e, se fizer sentido, indicação de vizinho ou parente.','Pedir la reseña en Google y, si cabe, una recomendación a vecinos o familia.','Ask for the Google review and, when it fits, a neighbor or family referral.'),
+            r.invoice?pick('Invoice #'+r.invoice+' já emitida: só confirmar se ficou tudo certo.','Factura #'+r.invoice+' ya emitida: solo confirmar que todo está en orden.','Invoice #'+r.invoice+' is out: just confirm everything is settled.'):pick('Sem invoice registrada: confirmar pagamento e emitir no QuickBooks.','Sin factura registrada: confirmar el pago y emitirla en QuickBooks.','No invoice on file: confirm payment and issue it in QuickBooks.')];
+      refl=[pick('Lead fechado'+(r.valor?' em '+money(r.valor):'')+'. O follow-up agora é de pós-venda: review e indicação valem mais que qualquer anúncio.','Lead cerrado'+(r.valor?' por '+money(r.valor):'')+'. El seguimiento ahora es posventa: reseña y recomendación valen más que cualquier anuncio.','Closed lead'+(r.valor?' at '+money(r.valor):'')+'. Follow-up now is after-sales: a review and a referral beat any ad.')];
+    }else if(st==='lost'){
+      sms=hi+'Flavio from USA VIP Floors. Thank you for considering us for your '+sv+' project. If anything changes, or you ever need a second opinion or a repair, I am one text away. Wishing you a great project!';
+      call=[pick('Não insistir. Uma pergunta só, educada: o que pesou na escolha (preço, prazo, material)?','No insistir. Una sola pregunta, educada: ¿qué pesó en la decisión (precio, plazo, material)?','Do not push. One polite question only: what tipped the decision (price, timing, material)?'),
+            pick('Anotar o motivo na abinha de contexto deste lead.','Anotar el motivo en la pestaña de contexto de este lead.','Log the reason in this lead\'s context tab.'),
+            pick('Deixar a porta aberta para reparo, próxima área da casa ou indicação.','Dejar la puerta abierta para reparación, próxima área de la casa o recomendación.','Leave the door open for repairs, the next room or a referral.')];
+      refl=[pick('Perdido para concorrente. O motivo é o dado mais barato que existe para ajustar preço e abordagem: pergunte uma vez e registre. Reative em 60 a 90 dias.','Perdido ante un competidor. El motivo es el dato más barato para ajustar precio y enfoque: pregunta una vez y regístralo. Reactiva en 60 a 90 días.','Lost to a competitor. The reason is the cheapest data you can get to adjust price and pitch: ask once and log it. Reactivate in 60 to 90 days.')];
+    }else if(st==='dead'){
+      sms=hi+'this is Flavio from USA VIP Floors. Whenever you are ready to revisit your '+sv+' project, I am here to help with a free estimate. Have a great week!';
+      call=[pick('Não ligar agora. Deixar só a porta aberta por texto.','No llamar ahora. Dejar solo la puerta abierta por texto.','Do not call now. Leave the door open by text only.')];
+      refl=[pick('Descartado. Um texto leve a cada 30 a 45 dias mantém o nome na memória sem incomodar.','Descartado. Un texto ligero cada 30 a 45 días mantiene el nombre presente sin molestar.','Discarded. A light text every 30 to 45 days keeps the name around without nagging.')];
+    }else if(isEst(r)){
+      sms=hi+'Flavio from USA VIP Floors here. Just following up on the estimate'+est+' I sent'+val+' for your '+sv+'. Any questions I can answer? If you would like to move forward, I can hold a date for you this month. Thank you!';
+      call=[pick('Perguntar se recebeu e entendeu o estimate'+est+'.','Preguntar si recibió y entendió el presupuesto'+est+'.','Ask whether they received and understood the estimate'+est+'.'),
+            pick('Descobrir a objeção real: preço, prazo, material ou outra cotação.','Descubrir la objeción real: precio, plazo, material u otra cotización.','Find the real objection: price, timing, material or another quote.'),
+            pick('Oferecer uma data concreta para começar e lembrar que não pedimos pagamento adiantado.','Ofrecer una fecha concreta para empezar y recordar que no pedimos pago adelantado.','Offer a concrete start date and remind them there is no upfront payment.'),
+            pick('Se houver margem, fechar com um ajuste pequeno em troca de decisão hoje.','Si hay margen, cerrar con un ajuste pequeño a cambio de decidir hoy.','If there is room, close with a small adjustment in exchange for a decision today.')];
+      var ed0=daysSince(r.dataEstimate);if(ed0==null)ed0=daysSince(r.ultimoContato)||d;
+      refl=[pick('Estimate na mão há '+ed0+' dias. É a fase que mais perde venda por silêncio: quem liga primeiro fecha.','Presupuesto entregado hace '+ed0+' días. Es la etapa que más ventas pierde por silencio: quien llama primero cierra.','Estimate has been out for '+ed0+' days. This is where most sales die of silence: whoever calls first closes.')];
+    }else if(p.primeiroContato){
+      sms=hi+'great talking with you about your '+sv+' project. Would you like me to stop by for a free estimate? I have openings this week and we do not ask for any payment upfront. Here is some of our recent work: https://usavipfloor.com/social/ Flavio, USA VIP Floors';
+      call=[pick('Retomar a conversa anterior e confirmar metragem e prazo.','Retomar la conversación anterior y confirmar metraje y plazo.','Pick up the earlier conversation and confirm square footage and timing.'),
+            pick('Propor dois horários para a visita de estimate.','Proponer dos horarios para la visita del presupuesto.','Offer two time slots for the estimate visit.'),
+            pick('Mandar o link do portfólio depois da ligação.','Enviar el enlace del portafolio después de la llamada.','Send the portfolio link after the call.')];
+      refl=[pick('Já conversaram: o próximo passo é agenda, não mais conversa. Dê opções fechadas de dia e hora.','Ya hablaron: el siguiente paso es la agenda, no más charla. Da opciones cerradas de día y hora.','You have already talked: the next step is a booking, not more talk. Offer fixed day and time options.')];
+    }else if(p.textoEnviado&&!p.naoAtendeu&&!p.ligacaoNaoAtendeu){
+      sms=hi+'just checking in on my message about your '+sv+' project. Are you still planning to get it done? I can come by for a free estimate, no payment upfront. Flavio, USA VIP Floors';
+      call=[pick('Ligar em horário diferente do texto (fim de tarde costuma atender mais).','Llamar en un horario distinto al del texto (al final de la tarde suelen contestar más).','Call at a different time from the text (late afternoon tends to answer more).'),
+            pick('Se atender: apresentar, confirmar o projeto e já propor a visita.','Si contesta: presentarse, confirmar el proyecto y proponer la visita.','If they answer: introduce yourself, confirm the project and propose the visit.'),
+            pick('Se cair na caixa postal: recado curto com nome, empresa e que vai mandar texto.','Si cae en el buzón: mensaje corto con nombre, empresa y que enviará un texto.','If voicemail: short message with name, company and that a text is coming.')];
+      refl=[pick('Texto sem resposta há '+(tent==null?'?':tent)+' dias. Alternar canal: a ligação agora tem mais chance que outro texto.','Texto sin respuesta hace '+(tent==null?'?':tent)+' días. Cambiar de canal: la llamada ahora tiene más chance que otro texto.','Text unanswered for '+(tent==null?'?':tent)+' days. Switch channel: a call now beats another text.')];
+    }else if(p.naoAtendeu||p.ligacaoNaoAtendeu){
+      sms=hi+'this is Flavio from USA VIP Floors. I tried calling about your '+sv+' project. Would a text work better for you? I can set up a free estimate this week, no payment upfront. https://usavipfloor.com/social/';
+      call=[pick('Tentar de novo em outro horário; duas tentativas no mesmo dia, uma de manhã e uma no fim da tarde.','Intentar de nuevo en otro horario; dos intentos el mismo día, uno por la mañana y otro al final de la tarde.','Try again at another time; two attempts the same day, one morning and one late afternoon.'),
+            pick('Deixar recado curto e mandar o texto acima logo em seguida.','Dejar un mensaje corto y enviar el texto de arriba enseguida.','Leave a short voicemail and send the text above right after.')];
+      refl=[pick('Não atendeu, mas o lead pediu contato. Número desconhecido assusta: o texto com nome e empresa abre a porta para a ligação seguinte.','No contestó, pero el lead pidió contacto. Un número desconocido asusta: el texto con nombre y empresa abre la puerta para la siguiente llamada.','No answer, but the lead asked to be contacted. Unknown numbers scare people: a text with your name and company opens the door for the next call.')];
+    }else{
+      sms=hi+'this is Flavio from USA VIP Floors. Thanks for reaching out about '+sv+(imm?' – I saw you are looking to get it done soon':'')+'. When would be a good time for a quick call or a free in-home estimate? No payment upfront. Here is some of our recent work: https://usavipfloor.com/social/';
+      call=[pick('Apresentar: Flavio, USA VIP Floors, retorno do pedido de orçamento de '+(r.servico||'piso')+'.','Presentarse: Flavio, USA VIP Floors, respondiendo al pedido de presupuesto de '+(r.servico||'piso')+'.','Introduce yourself: Flavio, USA VIP Floors, returning the '+(r.servico||'flooring')+' request.'),
+            pick('Perguntar metragem, cômodos, piso atual e prazo.','Preguntar metraje, ambientes, piso actual y plazo.','Ask square footage, rooms, current floor and timeline.'),
+            pick('Propor a visita de estimate com duas opções de horário.','Proponer la visita del presupuesto con dos opciones de horario.','Propose the estimate visit with two time options.'),
+            pick('Fechar a ligação confirmando dia, hora e endereço.','Cerrar la llamada confirmando día, hora y dirección.','End the call confirming day, time and address.')];
+      refl=[recent?pick('Lead novo (há '+d+' dias). As primeiras 24 a 72 horas decidem: ligue hoje, texto logo depois.','Lead nuevo (hace '+d+' días). Las primeras 24 a 72 horas deciden: llama hoy y envía el texto enseguida.','New lead ('+d+' days). The first 24 to 72 hours decide it: call today, text right after.')
+                   :pick('Sem contato há '+d+' dias. Ainda vale: um texto com o portfólio e uma ligação no mesmo dia recuperam parte desses leads.','Sin contacto hace '+d+' días. Aún vale la pena: un texto con el portafolio y una llamada el mismo día recuperan parte de estos leads.','No contact for '+d+' days. Still worth it: a text with the portfolio plus a same-day call recovers some of these leads.')];
+    }
+    if(shop)refl.push(pick('Está cotando com concorrentes (Empire etc.). Diferencial a falar: sem pagamento adiantado, instalação própria e data de início rápida.','Está cotizando con competidores (Empire, etc.). Diferencial a mencionar: sin pago adelantado, instalación propia y fecha de inicio rápida.','Shopping around (Empire etc.). Differentiators to lead with: no upfront payment, in-house installers and a fast start date.'));
+    if(far)refl.push(pick('Mora longe. Confirme o endereço antes de prometer visita; se não compensar, oriente por telefone ou indique alguém, sem queimar o nome.','Vive lejos. Confirma la dirección antes de prometer visita; si no compensa, orienta por teléfono o recomienda a alguien, sin quemar el nombre.','Lives far away. Confirm the address before promising a visit; if it is not worth it, advise by phone or refer someone, without burning the name.'));
+    if(quoted)refl.push(pick('Já recebeu valores antes. Não repita o preço: pergunte o que faltou para fechar.','Ya recibió valores antes. No repitas el precio: pregunta qué faltó para cerrar.','Already got pricing before. Do not repeat the price: ask what was missing to close.'));
+    if(plan&&st!=='closed')refl.push(pick('Prazo "ainda planejando": cadência mais leve, a cada 10 a 14 dias, com conteúdo (fotos de obra) em vez de cobrança.','Plazo "aún planeando": cadencia más ligera, cada 10 a 14 días, con contenido (fotos de obra) en vez de presión.','Timeline is "still planning": lighter cadence, every 10 to 14 days, with content (job photos) instead of pressure.'));
+    if(r.contexto)refl.push(t('ctx_yours')+r.contexto);
+    else if(obsL(r)&&st!=='closed')refl.push(pick('Contexto do grupo: ','Contexto del grupo: ','Group context: ')+obsL(r));
+    return {sms:sms,call:call,refl:refl};
+  }
+  function copyBtn(getText,id){
+    var b=el('button','copy',t('copy'));b.type='button';b.id=id;
+    b.addEventListener('click',function(){
+      var txt=getText();
+      function done(){b.textContent=t('copied');setTimeout(function(){b.textContent=t('copy');},1500);}
+      function fallback(){var ta=document.createElement('textarea');ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done();}catch(e){}document.body.removeChild(ta);}
+      if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(done,function(){fallback();});}else fallback();
+    });
+    return b;
+  }
+  function sugEl(r){
+    var s=aiSug[r.id]&&aiSug[r.id].lang===lang&&aiSug[r.id].sms?aiSug[r.id]:buildSug(r);
+    var box=el('div','sug');
+    box.appendChild(el('h4','',t('sug_btn')+' · '+r.nome));
+    var b1=el('div','blk'),h1=el('div','hd');h1.appendChild(el('span','lbl',t('sug_sms')));
+    var a1=el('div','acts');
+    var dg=digits(r.tel);
+    if(dg.length===10){var sl=el('a','smslink',t('sms_open'));sl.id='sms-'+r.id;sl.href='sms:+1'+dg+'?&body='+encodeURIComponent(s.sms);a1.appendChild(sl);}
+    a1.appendChild(copyBtn(function(){return s.sms;},'cp-sms-'+r.id));
+    h1.appendChild(a1);b1.appendChild(h1);b1.appendChild(el('pre','',s.sms));
+    if(dg.length!==10)b1.appendChild(el('p','hint',t('sms_nophone')));
+    box.appendChild(b1);
+    var b2=el('div','blk'),h2=el('div','hd');h2.appendChild(el('span','lbl',t('sug_call')));h2.appendChild(copyBtn(function(){return s.call.map(function(x,i){return (i+1)+'. '+x;}).join('\n');},'cp-call-'+r.id));b2.appendChild(h2);b2.appendChild(el('pre','',s.call.map(function(x,i){return (i+1)+'. '+x;}).join('\n')));box.appendChild(b2);
+    var b3=el('div','blk');b3.appendChild(el('span','lbl',t('sug_refl')));s.refl.forEach(function(x){b3.appendChild(el('div','refl',x));});box.appendChild(b3);
+    var cb=el('button','ctxtab',t('ctx_tab'));cb.type='button';cb.id='ctxt-'+r.id;cb.setAttribute('aria-expanded',openCtx[r.id]?'true':'false');
+    cb.addEventListener('click',function(){openCtx[r.id]=!openCtx[r.id];render();});
+    var cwrap=el('div','blk');cwrap.style.gap='0';cwrap.appendChild(cb);
+    if(openCtx[r.id]){
+      var cx=el('div','ctxbox');
+      cx.appendChild(el('p','hint',t('ctx_hint')));
+      var ta=document.createElement('textarea');ta.id='ctx-'+r.id;ta.value=r.contexto||'';ta.setAttribute('aria-label',t('ctx_tab')+' '+r.nome);
+      var cs=el('button','save',t('ctx_save'));cs.type='button';cs.id='ctxs-'+r.id;
+      cs.addEventListener('click',function(){var v=ta.value.trim();if(v===(r.contexto||''))return;cs.disabled=true;if(!db){say(t('need_claude'));cs.disabled=false;return;}db.doc('leads/'+r.id).update({contexto:v}).then(function(){touch();say(t('ctx_saved'));delete aiSug[r.id];}).catch(function(){say(t('save_fail',{n:r.nome}));cs.disabled=false;});});
+      cx.appendChild(ta);var ca=el('div','acts');ca.appendChild(cs);cx.appendChild(ca);
+      cwrap.appendChild(cx);
+    }
+    box.appendChild(cwrap);
+    var acts=el('div','acts');
+    if(sampler){
+      var ai=el('button','cancel',aiSug[r.id]&&aiSug[r.id].loading?t('sug_ai_wait'):t('sug_ai'));ai.type='button';ai.id='ai-'+r.id;ai.disabled=!!(aiSug[r.id]&&aiSug[r.id].loading);
+      ai.addEventListener('click',function(){askClaude(r);});
+      acts.appendChild(ai);
+    }
+    acts.appendChild(el('p','hint',s.ai?t('sug_ai_tag'):t('sug_hint')));
+    if(aiSug[r.id]&&aiSug[r.id].error)acts.appendChild(el('p','hint',t('sug_ai_fail')));
+    box.appendChild(acts);
+    return box;
+  }
+  function askClaude(r){
+    if(!sampler)return;
+    aiSug[r.id]={loading:true,lang:lang};render();
+    var ctx={nome:r.nome,telefone:r.tel?'sim':'não',entrou:r.data,dias_desde_entrada:daysSince(r.data),origem:r.origem,servico:r.servico,prazo:r.prazo,zip:r.zip,temperatura_alerta:r.temperatura,termometro:heat(r),tags:r.tags,parecer:Object.keys(r.parecer).filter(function(k){return r.parecer[k];}),ultimo_contato:r.ultimoContato||null,ultima_tentativa:r.ultimaTentativa||null,data_visita:r.dataVisita||null,data_envio_estimate:r.dataEstimate||null,ultimo_followup_pos_estimate:r.dataFollowUpEst||null,estimate_respondido_em:r.dataResposta||null,proximo_followup:r.proxFollowUp||null,valor:r.valor||null,estimate:r.estimate||null,invoice:r.invoice||null,observacao_do_grupo:r.obs||'',contexto_do_flavio:r.contexto||''};
+    var langName={pt:'português do Brasil',es:'español',en:'English'}[lang];
+    var prompt='Você é o assistente comercial da USA VIP Floors (instalação de pisos em Marietta, Georgia; dono: Flavio; foco em LVP, laminate, hardwood e escadas; não faz polimento nem lixamento; anúncio "no upfront payment"; portfólio em https://usavipfloor.com/social/). Com base no contexto deste lead, escreva uma sugestão de follow-up. Dê peso especial ao campo contexto_do_flavio, que é o que o dono sabe da conversa.\n\nContexto do lead (JSON): '+JSON.stringify(ctx)+'\n\nResponda SOMENTE com um JSON válido no formato {"sms":"...","call":["...","..."],"refl":["...","..."]}.\n- "sms": uma mensagem de texto curta (até 320 caracteres), em inglês americano, natural, assinada "Flavio, USA VIP Floors", adequada ao estágio atual do lead (sem contato, texto enviado, não atendeu, estimate enviado, fechado, descartado).\n- "call": 3 a 5 passos curtos de roteiro de ligação, em '+langName+', específicos para este lead.\n- "refl": 1 a 3 frases de reflexão estratégica em '+langName+', diretas, usando os dados do lead (dias desde a entrada, prazo, tags, observação, contexto, valor), dizendo o que fazer hoje e por quê.\nNão invente garantias, preços ou promoções além do que está no contexto.';
+    sampler.json(prompt,{modelTier:'default'}).then(function(j){
+      var ok=j&&typeof j.sms==='string'&&Array.isArray(j.call)&&Array.isArray(j.refl);
+      aiSug[r.id]=ok?{sms:j.sms,call:j.call.map(String),refl:j.refl.map(String),ai:true,lang:lang}:{error:true,lang:lang};
+      render();
+    }).catch(function(){aiSug[r.id]={error:true,lang:lang};render();});
+  }
+
+  /* ---------- Sincronização com o QuickBooks (mcp) ---------- */
+  var QB_SERVER='Intuit QuickBooks';
+  function nkey(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\(.*?\)/g,'').replace(/[^a-z0-9 ]+/g,' ').replace(/\s+/g,' ').trim();}
+  function findLead(c){
+    var em=String(c.email||'').toLowerCase().trim(),nm=nkey(c.name);
+    if(em&&!c.sharedEmail&&!/flavio18ssantos@|usavipfloors|jmgrowthlab/.test(em)){var byE=rows.filter(function(r){return r.email&&r.email.toLowerCase()===em;});if(byE.length===1)return byE[0];}
+    var ph=digits(c.phone);if(ph.length===10){var byP=rows.filter(function(r){return digits(r.tel)===ph;});if(byP.length===1)return byP[0];}
+    if(nm){var byN=rows.filter(function(r){return nkey(r.nome)===nm;});if(byN.length)return byN[0];
+      var parts=nm.split(' ');if(parts.length>=2){var f=parts[0],l=parts[parts.length-1];var byFL=rows.filter(function(r){var k=nkey(r.nome);return k.indexOf(f)>=0&&k.indexOf(l)>=0;});if(byFL.length===1)return byFL[0];}}
+    return null;
+  }
+  function qbErrText(e,s){
+    s=s||'QuickBooks';var c=e&&e.code||'';
+    if(c==='server_not_connected'||c==='selection_required'||c==='server_not_found')return t('qb_err_nc',{s:s});
+    if(c==='needs_reauth')return t('qb_err_reauth',{s:s});
+    if(c==='not_in_manifest'||c==='blocked_by_policy'||c==='approval_required'||c==='consent_required')return t('qb_err_scope',{s:s});
+    if(c==='server_unavailable'||c==='rate_limited'||c==='upstream_error')return t('qb_err_down',{s:s});
+    if(c==='tool_error')return t('qb_err_tool',{s:s,m:String(e.message||'').slice(0,160)});
+    return t('qb_err_other',{c:c||'?'});
+  }
+  var CRM_SERVER='LeadConnector',CRM_LOC='RAShUdm2DUS09zsU6CNX',CRM_SKIP_PIPE={'6f34AaAIsCumuQeZxLpP':1};
+  var CRM_STAGE={
+    '0c3efec2-d1d2-4d8c-b07d-90e3c9e2b715':['new','New Lead'],'8b9ed749-d192-4939-8ad6-86b4ae23a82d':['new','New Lead'],
+    'c35de813-ffde-4f5b-94bd-5be0f2c4313c':['call2','Second Call'],'0483696d-2a52-4eb2-b638-b2b84811615e':['call2','Second Call'],
+    '09dfb2fd-d433-4356-ace1-2a6a35b934e0':['fu','Follow Up'],'8636ee90-aa60-4aa0-8eed-90d028a87752':['fu','Follow Up'],
+    'b160136b-5d96-468e-a869-33a6e66ff4be':['sched','Scheduled Estimate'],'e0d991f0-a935-4a57-bf6c-0c870feafe9f':['sched','Scheduled Estimate'],
+    '2693fab1-ae62-4c06-bc41-0095173ab189':['done','Estimate Done'],'925562a3-0c45-4bdd-9181-98f41250c660':['done','Estimate Done'],
+    'c662724b-2890-4628-9a1c-ad31dcf3ad6a':['nego','Negotiating'],'e2371acd-512c-4d8f-b41a-828f557e7267':['nego','Negotiating'],
+    '078dd2a8-85ee-4c94-b1dc-4596f6302f48':['sale','Sale (Job Closed)'],'a150a8cf-687c-4f89-9d9a-32c89b8e2d93':['sale','Sale (Job Closed)'],
+    'f9c5015c-98a6-4cab-a0af-041a4ce7e698':['review','Request Review'],'3944f676-e6a1-4a9b-8531-8192883e51f2':['review','Request Review'],
+    '723c59b2-e7e8-4c62-b164-390b63bc3503':['lost','Not Hired (Nurture)'],'e0b9af30-dcac-42b6-ba0b-58f3296a5da0':['lost','Not Hired (Nurture)'],
+    'e0301833-141d-4a17-8ba7-91a81092a62b':['spam','Spam'],'5a165c27-1929-4d79-a428-574e117d38ae':['spam','Spam']
+  };
+  function payloadOf(res){
+    var p=res&&res.payload!==undefined?res.payload:res;
+    if(p&&typeof p==='object'&&Array.isArray(p.content)&&!p.data){var tx=p.content.map(function(c){return c&&typeof c.text==='string'?c.text:'';}).join('');if(tx){try{p=JSON.parse(tx);}catch(e){}}}
+    if(typeof p==='string'){try{p=JSON.parse(p);}catch(e){p=null;}}
+    return p||{};
+  }
+  function mcpCall(server,tool,input){
+    return mcpNs.callTool(server,tool,input,{cache:false}).catch(function(e){
+      if(e&&e.retryable){var w=2000+Math.random()*2000;return new Promise(function(res){setTimeout(res,w);}).then(function(){return mcpNs.callTool(server,tool,input,{cache:false});});}
+      throw e;
+    });
+  }
+  function qbCall(tool,input){return mcpCall(QB_SERVER,tool,input);}
+  function copyPar(lead){var o={};PARECER.forEach(function(x){o[x.k]=!!lead.parecer[x.k];});return o;}
+  function runOps(ops){var chain=Promise.resolve();ops.forEach(function(f){chain=chain.then(f);});return chain;}
+  function localDate(s){var d=new Date(s);return isNaN(d)?'':iso(d);}
+  function localTime(s){var d=new Date(s);return isNaN(d)?'':('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);}
+  /* QuickBooks: estimates e invoices (90 dias para trás, 180 para frente) */
+  function qbPart(to){
+    var fd=new Date();fd.setDate(fd.getDate()-90);var from=iso(fd);var td=new Date();td.setDate(td.getDate()+180);var toQ=iso(td);
+    var inp={transaction_date:{from_date:from,to_date:toQ},limit:1000,order_by:'TxnDate DESC'};
+    return Promise.all([qbCall('qbo_sales_get_estimates',inp),qbCall('qbo_sales_get_invoices',inp)]).then(function(res){
+      var est=payloadOf(res[0]).data||[],inv=payloadOf(res[1]).data||[];
+      if(!Array.isArray(est))est=[];if(!Array.isArray(inv))inv=[];
+      var cust={};
+      function slot(c){var nm=String((c&&c.display_name)||'').trim();if(!nm)return null;var k=nkey(nm);if(!cust[k])cust[k]={name:nm,email:(c&&c.email)||'',est:[],inv:[]};else if(!cust[k].email&&c&&c.email)cust[k].email=c.email;return cust[k];}
+      function markShared(){var seen={};Object.keys(cust).forEach(function(k){var e=String(cust[k].email||'').toLowerCase().trim();if(!e)return;seen[e]=(seen[e]||0)+1;});Object.keys(cust).forEach(function(k){var e=String(cust[k].email||'').toLowerCase().trim();if(e&&seen[e]>1)cust[k].sharedEmail=true;});}
+      est.forEach(function(e){var sl=slot(e.contact);if(sl)sl.est.push(e);});
+      inv.forEach(function(e){var sl=slot(e.contact);if(sl)sl.inv.push(e);});
+      markShared();
+      var ops=[],upd=0,nov=0,clo=0;
+      Object.keys(cust).forEach(function(k){
+        var c=cust[k];
+        c.est.sort(function(a,b){return String(a.txn_date).localeCompare(String(b.txn_date))||String(a.reference_number).localeCompare(String(b.reference_number));});
+        c.inv.sort(function(a,b){return String(a.txn_date).localeCompare(String(b.txn_date));});
+        var mainE=null;c.est.forEach(function(e){if(!mainE||Number(e.amount)>Number(mainE.amount))mainE=e;});
+        var lastI=c.inv.length?c.inv[c.inv.length-1]:null;
+        var lead=findLead(c);
+        if(lead){
+          var patch={},changed=false;
+          if(mainE){
+            var estN=String(mainE.reference_number||''),estV=Number(mainE.amount)||0,estD=String(c.est[0].txn_date||'');
+            if(!lead.estimate||lead.estimate!==estN&&!lead.invoice){patch.estimate=estN;changed=true;}
+            if(!lead.invoice&&Math.abs((lead.valor||0)-estV)>0.009){patch.valor=estV;changed=true;}
+            if(!lead.dataEstimate&&estD){patch.dataEstimate=estD;changed=true;}
+            if(!lead.parecer.marcouEstimate&&isOpen(lead)){var np=copyPar(lead);np.marcouEstimate=true;patch.parecer=np;changed=true;}
+          }
+          if(lastI&&!lead.invoice){
+            patch.invoice=String(lastI.reference_number||'');patch.valor=Number(lastI.amount)||lead.valor||0;
+            var np2=patch.parecer||copyPar(lead);
+            if(!np2.fechou){np2.fechou=true;np2.perdeu=false;np2.descartado=false;clo++;}
+            patch.parecer=np2;var di=String(lastI.txn_date||to);
+            if(!lead.ultimoContato||lead.ultimoContato<di)patch.ultimoContato=di;
+            if(!lead.dataResposta)patch.dataResposta=di;
+            changed=true;
+          }
+          if(changed){upd++;ops.push(function(){return db.doc('leads/'+lead.id).update(patch);});}
+        }else if(mainE||lastI){
+          var first=mainE?c.est[0]:lastI;var d0=String(first.txn_date||to);
+          var id='qb-'+slug(c.name);if(rows.some(function(r){return r.id===id;}))id=id+'-'+d0;
+          var svc=(mainE&&mainE.lines&&mainE.lines[0]&&mainE.lines[0].item_name)||(lastI&&lastI.lines&&lastI.lines[0]&&lastI.lines[0].item_name)||'';
+          var par={primeiroContato:true,marcouEstimate:true};if(lastI){par.fechou=true;clo++;}
+          var obs='Importado do QuickBooks em '+dmy(to)+'.'+(mainE?' Estimate #'+mainE.reference_number+' ('+money(Number(mainE.amount)||0)+').':'')+(lastI?' Invoice #'+lastI.reference_number+' ('+money(Number(lastI.amount)||0)+').':'');
+          var doc={nome:c.name,tel:'',email:c.email||'',zip:'',data:d0>to?to:d0,hora:'',origem:'QuickBooks',servico:svc,prazo:'',temperatura:'',tags:['Importado do QuickBooks'],parecer:par,ultimoContato:lastI?String(lastI.txn_date):(d0>to?to:d0),ultimaTentativa:lastI?String(lastI.txn_date):(d0>to?to:d0),obs:obs,obs_en:'',obs_es:'',contexto:'',dataVisita:'',dataEstimate:mainE?d0:'',dataFollowUpEst:'',dataResposta:lastI?String(lastI.txn_date):'',proxFollowUp:'',valor:Number((lastI||mainE).amount)||0,estimate:mainE?String(mainE.reference_number||''):'',invoice:lastI?String(lastI.reference_number||''):'',crm:''};
+          nov++;ops.push(function(){return db.doc('leads/'+id).set(doc);});
+        }
+      });
+      return runOps(ops).then(function(){return {estimates:est.length,invoices:inv.length,atualizados:upd,novos:nov,fechados:clo};});
+    });
+  }
+  /* CRM (LeadConnector): oportunidades dos últimos 60 dias */
+  function crmOrigem(src){var s=String(src||'').toLowerCase();if(/facebook|instagram|meta/.test(s))return 'Facebook';if(/landing/.test(s))return 'Landing page';if(/website|site/.test(s))return 'Site';if(/local service|gmb|google/.test(s))return 'GMB (ligação)';return 'CRM';}
+  function crmFetch(cutoffMs){
+    var all=[],pages=0;
+    function page(q){
+      return mcpCall(CRM_SERVER,'execute_operation',{operationId:'search-opportunity',locationId:CRM_LOC,params:{query:q},reason:'Ler oportunidades recentes para o painel de leads'}).then(function(res){
+        var p=payloadOf(res);if(p&&p.success===false)throw {code:'tool_error',message:p.error||p.message||'CRM'};
+        var d=p.data||p,list=(d&&d.opportunities)||[];if(!Array.isArray(list))list=[];
+        all=all.concat(list);pages++;
+        var last=list.length?list[list.length-1]:null,meta=d&&d.meta||{};
+        var lastMs=last?new Date(last.createdAt).getTime():0;
+        if(list.length&&lastMs>=cutoffMs&&meta.startAfterId&&pages<5){
+          var nq={};Object.keys(q).forEach(function(k){nq[k]=q[k];});nq.startAfter=meta.startAfter;nq.startAfterId=meta.startAfterId;return page(nq);
+        }
+        return all;
+      });
+    }
+    return page({limit:100,status:'all',order:'added_desc',getCalendarEvents:true});
+  }
+  function crmPart(to){
+    var cd=new Date();cd.setDate(cd.getDate()-60);var cutoffMs=cd.getTime();
+    return crmFetch(cutoffMs).then(function(list){
+      var ops=[],upd=0,nov=0,clo=0,seen={};
+      list.forEach(function(op){
+        if(!op||CRM_SKIP_PIPE[op.pipelineId])return;
+        var created=new Date(op.createdAt).getTime();if(!created||created<cutoffMs)return;
+        var ct=op.contact||(op.relations&&op.relations[0])||{};
+        var name=String(ct.name||ct.fullName||ct.contactName||op.name||'').trim(),email=String(ct.email||'').trim(),phone=String(ct.phone||'').trim();
+        var tags=(ct.tags||[]).map(String);
+        if(!name||/\bteste?\b/i.test(name)||/example\.com$/i.test(email))return;
+        if(tags.some(function(x){return /crm.antigo|crm-antigo/i.test(x);}))return;
+        var cid=ct.id||ct.recordId||op.contactId||'';var key=cid||nkey(name);if(seen[key])return;seen[key]=1;
+        var st=CRM_STAGE[op.pipelineStageId]||['new',''];var stage=st[0],stageName=st[1];
+        var status=String(op.status||'open').toLowerCase();
+        if(status==='won')stage='sale';else if(status==='lost'||status==='abandoned'){if(stage!=='spam')stage='lost';}
+        var stageAt=localDate(op.lastStageChangeAt||op.updatedAt||op.createdAt)||to;
+        var link=cid?'https://app.gohighlevel.com/v2/location/'+CRM_LOC+'/contacts/detail/'+cid:'';
+        var evs=op.calenders||op.calendarEvents||op.calendars||[];var visit='';
+        if(Array.isArray(evs))evs.forEach(function(ev){var s=ev&&(ev.startTime||ev.start_time||ev.startDate);var d=s?localDate(s):'';if(d&&(!visit||d<visit&&d>=to))visit=d;});
+        var money$=Number(op.monetaryValue)||0;
+        var lead=findLead({name:name,email:email,phone:phone});
+        if(lead){
+          var patch={},changed=false;
+          if(!lead.crm&&link){patch.crm=link;changed=true;}
+          if(!lead.tel&&digits(phone).length===10){patch.tel=digits(phone);changed=true;}
+          if(!lead.email&&email&&!/example\.com$/i.test(email)){patch.email=email;changed=true;}
+          if(!lead.valor&&money$>0&&!lead.invoice){patch.valor=money$;changed=true;}
+          if(visit&&!lead.dataVisita){patch.dataVisita=visit;changed=true;}
+          var np=null;function P(){if(!np)np=copyPar(lead);return np;}
+          if((stage==='sched'||stage==='done'||stage==='nego'||visit)&&isOpen(lead)&&!lead.parecer.marcouEstimate){P().marcouEstimate=true;P().primeiroContato=true;}
+          if((stage==='done'||stage==='nego')&&!lead.dataEstimate){patch.dataEstimate=stageAt;changed=true;}
+          if((stage==='sale'||stage==='review')&&!lead.parecer.fechou){P().fechou=true;P().perdeu=false;P().descartado=false;P().marcouEstimate=true;P().primeiroContato=true;clo++;if(!lead.ultimoContato||lead.ultimoContato<stageAt)patch.ultimoContato=stageAt;}
+          if(stage==='lost'&&isOpen(lead)){P().perdeu=true;}
+          if(stage==='spam'&&isOpen(lead)){P().descartado=true;}
+          if(np){patch.parecer=np;changed=true;}
+          if(changed){upd++;ops.push(function(){return db.doc('leads/'+lead.id).update(patch);});}
+        }else{
+          var d0=localDate(op.createdAt)||to,h0=localTime(op.createdAt);
+          var id='crm-'+slug(name);if(rows.some(function(r){return r.id===id;}))id=id+'-'+d0;
+          var par={};
+          if(stage==='call2'||stage==='fu'){par.primeiroContato=true;}
+          if(stage==='sched'||stage==='done'||stage==='nego'||visit){par.primeiroContato=true;par.marcouEstimate=true;}
+          if(stage==='sale'||stage==='review'){par.primeiroContato=true;par.marcouEstimate=true;par.fechou=true;clo++;}
+          if(stage==='lost'){par.perdeu=true;}
+          if(stage==='spam'){par.descartado=true;}
+          var tg=['Importado do CRM'].concat(tags.filter(function(x){return x&&!/^new lead$/i.test(x);}));
+          var obs='Importado do CRM em '+dmy(to)+'.'+(stageName?' Etapa no CRM: '+stageName+'.':'')+(op.source?' Fonte: '+op.source+'.':'');
+          var doc={nome:name,tel:digits(phone).length===10?digits(phone):phone,email:/example\.com$/i.test(email)?'':email,zip:'',data:d0,hora:h0,origem:crmOrigem(op.source),servico:'',prazo:'',temperatura:'',tags:tg,parecer:par,ultimoContato:par.primeiroContato?stageAt:'',ultimaTentativa:par.primeiroContato?stageAt:'',obs:obs,obs_en:'',obs_es:'',contexto:'',dataVisita:visit,dataEstimate:(stage==='done'||stage==='nego'||stage==='sale'||stage==='review')?stageAt:'',dataFollowUpEst:'',dataResposta:'',proxFollowUp:'',valor:money$,estimate:'',invoice:'',crm:link};
+          nov++;ops.push(function(){return db.doc('leads/'+id).set(doc);});
+        }
+      });
+      return runOps(ops).then(function(){return {oportunidades:list.length,atualizados:upd,novos:nov,fechados:clo};});
+    });
+  }
+  function qbSync(){
+    if(!mcpNs||!db||qbBusy)return;
+    var btn=document.getElementById('qb-btn');qbBusy=true;btn.disabled=true;say(t('qb_running'));
+    var to=today(),out={},lines=[];
+    qbPart(to).then(function(r){out.qb=r;lines.push(t('qb_report',{e:r.estimates,i:r.invoices,u:r.atualizados,n:r.novos,c:r.fechados}));},function(e){lines.push(qbErrText(e,'QuickBooks'));})
+    .then(function(){return crmPart(to).then(function(r){out.crm=r;lines.push(t('crm_report',{o:r.oportunidades,u:r.atualizados,n:r.novos,c:r.fechados}));},function(e){lines.push(qbErrText(e,'CRM (LeadConnector)'));});})
+    .then(function(){
+      if(!out.qb&&!out.crm){say(lines.join(' | '));return;}
+      var stamp=new Date().toISOString(),rec={em:stamp};
+      if(out.qb){rec.estimates=out.qb.estimates;rec.invoices=out.qb.invoices;rec.atualizados=out.qb.atualizados;rec.novos=out.qb.novos;rec.fechados=out.qb.fechados;}
+      if(out.crm)rec.crm=out.crm;
+      return db.doc('meta/painel').set({ultimaAtualizacao:to,qbSync:rec}).catch(function(){}).then(function(){say(lines.join(' | '));});
+    }).catch(function(e){say(qbErrText(e));}).then(function(){qbBusy=false;btn.disabled=false;});
+  }
+  function fmtStamp(isoS){var d=new Date(isoS);if(isNaN(d))return '';return dmyFull(iso(d))+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);}
+  /* ---------- Edição ---------- */
+  function editEl(r){
+    var ed=el('div','edit');
+    var f1=el('div','form');
+    var inp=document.createElement('input');inp.type='tel';inp.id='tel-'+r.id;inp.value=r.tel||'';inp.placeholder=t('e_tel');inp.setAttribute('aria-label',t('e_tel')+' '+r.nome);
+    var sv=el('button','cancel',t('e_save_tel'));sv.type='button';sv.id='tels-'+r.id;
+    sv.addEventListener('click',function(){var v=inp.value.trim();if(v===(r.tel||''))return;write(r,{tel:v},sv);});
+    f1.appendChild(inp);f1.appendChild(sv);
+    var zi=document.createElement('input');zi.id='zip-'+r.id;zi.value=r.zip||'';zi.placeholder=t('e_zip');zi.setAttribute('aria-label',t('e_zip')+' '+r.nome);
+    var zs=el('button','cancel',t('e_save_zip'));zs.type='button';zs.id='zips-'+r.id;
+    zs.addEventListener('click',function(){var v=zi.value.trim();if(v===(r.zip||''))return;write(r,{zip:v},zs);});
+    f1.appendChild(zi);f1.appendChild(zs);
+    ed.appendChild(f1);
+    var fv=el('div','form');
+    var vi=document.createElement('input');vi.type='number';vi.step='0.01';vi.min='0';vi.id='val-'+r.id;vi.value=r.valor||'';vi.placeholder=t('e_val');vi.setAttribute('aria-label',t('e_val')+' '+r.nome);
+    var ei=document.createElement('input');ei.id='est-'+r.id;ei.value=r.estimate||'';ei.placeholder=t('e_est');ei.setAttribute('aria-label',t('e_est')+' '+r.nome);
+    var ii=document.createElement('input');ii.id='inv-'+r.id;ii.value=r.invoice||'';ii.placeholder=t('e_inv');ii.setAttribute('aria-label',t('e_inv')+' '+r.nome);
+    var vs=el('button','cancel',t('e_save_val'));vs.type='button';vs.id='vals-'+r.id;
+    vs.addEventListener('click',function(){var v=Number(vi.value)||0,e=ei.value.trim(),n=ii.value.trim();if(v===(r.valor||0)&&e===(r.estimate||'')&&n===(r.invoice||''))return;write(r,{valor:v,estimate:e,invoice:n},vs);});
+    fv.appendChild(vi);fv.appendChild(ei);fv.appendChild(ii);fv.appendChild(vs);
+    ed.appendChild(fv);
+    var fe=el('div','form');
+    var ev=document.createElement('input');ev.type='date';ev.id='dv-'+r.id;ev.value=r.dataVisita||'';ev.setAttribute('aria-label',t('e_visit')+' '+r.nome);
+    var ee=document.createElement('input');ee.type='date';ee.id='de-'+r.id;ee.value=r.dataEstimate||'';ee.setAttribute('aria-label',t('e_sent')+' '+r.nome);
+    var er=document.createElement('input');er.type='date';er.id='dr-'+r.id;er.value=r.dataResposta||'';er.setAttribute('aria-label',t('e_reply')+' '+r.nome);
+    var ef=document.createElement('input');ef.type='date';ef.id='df-'+r.id;ef.value=r.dataFollowUpEst||'';ef.setAttribute('aria-label',t('e_fu')+' '+r.nome);
+    var en=document.createElement('input');en.type='date';en.id='dn-'+r.id;en.value=r.proxFollowUp||'';en.setAttribute('aria-label',t('e_next')+' '+r.nome);
+    var es2=el('button','cancel',t('e_save_est'));es2.type='button';es2.id='des-'+r.id;
+    es2.addEventListener('click',function(){var a=ev.value||'',b=ee.value||'',c=ef.value||'',d=en.value||'',e2=er.value||'';if(a===(r.dataVisita||'')&&b===(r.dataEstimate||'')&&c===(r.dataFollowUpEst||'')&&d===(r.proxFollowUp||'')&&e2===(r.dataResposta||''))return;var patch={dataVisita:a,dataEstimate:b,dataFollowUpEst:c,proxFollowUp:d,dataResposta:e2};if((a||b)&&!r.parecer.marcouEstimate){var np={};PARECER.forEach(function(x){np[x.k]=!!r.parecer[x.k];});np.marcouEstimate=true;patch.parecer=np;}write(r,patch,es2);});
+    fe.appendChild(el('span','lbl',t('e_visit')));fe.appendChild(ev);fe.appendChild(el('span','lbl',t('e_sent')));fe.appendChild(ee);fe.appendChild(el('span','lbl',t('e_reply')));fe.appendChild(er);fe.appendChild(el('span','lbl',t('e_fu')));fe.appendChild(ef);fe.appendChild(el('span','lbl',t('e_next')));fe.appendChild(en);fe.appendChild(es2);
+    ed.appendChild(fe);
+    var f2=el('div','form');
+    var d1=document.createElement('input');d1.type='date';d1.id='uc-'+r.id;d1.value=r.ultimoContato||'';d1.setAttribute('aria-label',t('last_contact')+r.nome);
+    var d2=document.createElement('input');d2.type='date';d2.id='ut-'+r.id;d2.value=r.ultimaTentativa||'';d2.setAttribute('aria-label',t('last_try')+r.nome);
+    var ds=el('button','cancel',t('e_save_dates'));ds.type='button';ds.id='ds-'+r.id;
+    ds.addEventListener('click',function(){var a=d1.value||'',b=d2.value||'';if(a===(r.ultimoContato||'')&&b===(r.ultimaTentativa||''))return;write(r,{ultimoContato:a,ultimaTentativa:b},ds);});
+    f2.appendChild(el('span','lbl',t('last_contact')));f2.appendChild(d1);f2.appendChild(el('span','lbl',t('last_try')));f2.appendChild(d2);f2.appendChild(ds);
+    ed.appendChild(f2);
+    var f3=el('div','form');f3.appendChild(el('span','lbl',t('f_source')));
+    ['Facebook','Site','Landing page','GMB (ligação)','Ligação direta','CRM','Indicação','QuickBooks'].forEach(function(o,i){
+      var ob=el('button','cancel',oL(o));ob.type='button';ob.id='o'+i+'-'+r.id;ob.setAttribute('aria-pressed',r.origem===o?'true':'false');
+      ob.addEventListener('click',function(){write(r,{origem:r.origem===o?'':o},ob);});
+      f3.appendChild(ob);
+    });
+    ed.appendChild(f3);
+    var f4=el('div','form');f4.appendChild(el('span','lbl',t('f_therm')));
+    ['Quente','Morno','Frio'].forEach(function(o,i){
+      var ob=el('button','cancel',tempLabel(o));ob.type='button';ob.id='tp'+i+'-'+r.id;ob.setAttribute('aria-pressed',r.temperatura===o?'true':'false');
+      ob.addEventListener('click',function(){write(r,{temperatura:r.temperatura===o?'':o},ob);});
+      f4.appendChild(ob);
+    });
+    ed.appendChild(f4);
+    var f5=el('div','form');
+    var ti=document.createElement('input');ti.id='tags-'+r.id;ti.value=r.tags.join(', ');ti.placeholder=t('e_tags_ph');ti.className='wide';ti.setAttribute('aria-label',t('f_tags')+' '+r.nome);
+    var ts=el('button','cancel',t('e_save_tags'));ts.type='button';ts.id='tagss-'+r.id;
+    ts.addEventListener('click',function(){var v=splitTags(ti.value);if(v.join('|')===r.tags.join('|'))return;write(r,{tags:v},ts);});
+    f5.appendChild(ti);
+    ['Prioridade','Degraus','Longe','Cotando concorrentes','Fora da área?','Completar dados'].forEach(function(x,i){
+      var qb=el('button','cancel',tgL(x));qb.type='button';qb.id='qt'+i+'-'+r.id;qb.setAttribute('aria-pressed',r.tags.indexOf(x)>=0?'true':'false');
+      qb.addEventListener('click',function(){var v=r.tags.slice();var k=v.indexOf(x);if(k>=0)v.splice(k,1);else v.push(x);write(r,{tags:v},qb);});
+      f5.appendChild(qb);
+    });
+    f5.appendChild(ts);
+    ed.appendChild(f5);
+    var f6=el('div','form');
+    var ta=document.createElement('textarea');ta.id='obs-'+r.id;ta.value=r.obs||'';ta.placeholder=t('e_obs');ta.setAttribute('aria-label',t('e_obs')+' '+r.nome);
+    var os=el('button','cancel',t('e_save_obs'));os.type='button';os.id='obss-'+r.id;
+    os.addEventListener('click',function(){var v=ta.value.trim();if(v===(r.obs||''))return;write(r,{obs:v},os);});
+    f6.appendChild(ta);f6.appendChild(os);
+    ed.appendChild(f6);
+    var acts=el('div','acts');
+    if(pending===r.id){
+      var yes=el('button','del sure',t('confirm_rm'));yes.type='button';yes.id='y-'+r.id;
+      yes.addEventListener('click',function(){remove(r,yes);});
+      var no=el('button','cancel',t('cancel'));no.type='button';no.id='n-'+r.id;
+      no.addEventListener('click',function(){pending=null;render();});
+      acts.appendChild(yes);acts.appendChild(no);
+    }else{
+      var dl=el('button','del',t('remove'));dl.type='button';dl.id='d-'+r.id;dl.setAttribute('aria-label',t('remove')+' '+r.nome);
+      dl.addEventListener('click',function(){pending=r.id;render();});
+      acts.appendChild(dl);
+    }
+    ed.appendChild(acts);
+    return ed;
+  }
+  function splitTags(s){var seen={};return String(s||'').split(',').map(function(x){return x.trim();}).filter(function(x){if(!x||seen[x])return false;seen[x]=1;return true;});}
+  function touch(){if(db)db.doc('meta/painel').set({ultimaAtualizacao:today()}).catch(function(){});}
+  function write(r,patch,btn){
+    if(!db){say(t('need_claude'));return;}
+    if(btn)btn.disabled=true;say('');
+    db.doc('leads/'+r.id).update(patch).then(touch).catch(function(){
+      say(t('save_fail',{n:r.nome}));
+      if(btn)btn.disabled=false;
+    });
+  }
+  function togglePar(r,p,b){
+    var on=!r.parecer[p.k];
+    var np={};PARECER.forEach(function(x){np[x.k]=!!r.parecer[x.k];});np[p.k]=on;
+    var patch={parecer:np};
+    if(on){var d=today();patch.ultimaTentativa=d;if(p.contact)patch.ultimoContato=d;}
+    write(r,patch,b);
+  }
+  function remove(r,b){
+    if(!db)return;b.disabled=true;say('');
+    db.doc('leads/'+r.id).delete().then(function(){pending=null;touch();}).catch(function(){
+      say(t('rm_fail',{n:r.nome}));pending=null;render();
+    });
+  }
+  function slug(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40)||'lead';}
+  var eb=document.getElementById('edit-btn');
+  eb.addEventListener('click',function(){
+    editing=!editing;pending=null;
+    eb.setAttribute('aria-pressed',editing?'true':'false');
+    eb.textContent=editing?t('done_edit'):t('edit_list');
+    render();
+  });
+  var ab=document.getElementById('add-btn'),card=document.getElementById('addcard'),amsg=document.getElementById('a-msg');
+  function showAdd(v){adding=v;dupOk=false;card.hidden=!v;ab.setAttribute('aria-pressed',v?'true':'false');amsg.hidden=true;document.getElementById('a-save').textContent=t('a_add');if(v){var dd=document.getElementById('a-data');dd.value=dd.value||today();document.getElementById('a-nome').focus();}}
+  ab.addEventListener('click',function(){showAdd(!adding);});
+  document.getElementById('a-cancel').addEventListener('click',function(){showAdd(false);});
+  document.getElementById('addform').addEventListener('submit',function(ev){
+    ev.preventDefault();
+    if(!db){amsg.textContent=t('need_claude');amsg.hidden=false;return;}
+    var nome=document.getElementById('a-nome').value.trim(),tel=document.getElementById('a-tel').value.trim();
+    if(!nome)return;
+    var dg=digits(tel);
+    var dup=rows.filter(function(r){return (dg&&digits(r.tel)===dg)||r.nome.toLowerCase()===nome.toLowerCase();});
+    if(dup.length&&!dupOk){
+      amsg.textContent=t('a_dup',{l:dup.map(function(r){return r.nome+' ('+dmy(r.data)+')';}).join(', ')});
+      amsg.hidden=false;dupOk=true;document.getElementById('a-save').textContent=t('a_again');return;
+    }
+    var data=document.getElementById('a-data').value||today();
+    var id=slug(nome)+'-'+data;
+    var doc={nome:nome,tel:tel,email:'',zip:document.getElementById('a-zip').value.trim(),data:data,hora:'',origem:document.getElementById('a-origem').value,servico:document.getElementById('a-serv').value.trim(),prazo:document.getElementById('a-prazo').value.trim(),temperatura:document.getElementById('a-temp').value,tags:splitTags(document.getElementById('a-tags').value),parecer:{},ultimoContato:'',ultimaTentativa:'',obs:document.getElementById('a-obs').value.trim(),contexto:'',dataVisita:'',dataEstimate:'',dataFollowUpEst:'',dataResposta:'',proxFollowUp:'',valor:0,estimate:'',invoice:'',crm:''};
+    var sb=document.getElementById('a-save');sb.disabled=true;
+    db.doc('leads/'+id).set(doc).then(function(){
+      sb.disabled=false;touch();
+      document.getElementById('addform').reset();showAdd(false);
+      say(t('a_added',{n:nome}));
+    }).catch(function(){sb.disabled=false;amsg.textContent=t('a_fail',{n:nome});amsg.hidden=false;});
+  });
+  function multi(boxId,prefix,keys,labelOf,getSel,setSel){
+    var box=document.getElementById(boxId);
+    while(box.children.length>1)box.removeChild(box.lastChild);
+    ['all'].concat(keys).forEach(function(k,i){
+      var b=el('button','',k==='all'?t('all'):labelOf(k));b.type='button';b.id=prefix+i;b.setAttribute('data-k',k);
+      b.addEventListener('click',function(){
+        var sel=getSel();
+        if(k==='all')sel=[];else{var j=sel.indexOf(k);if(j>=0)sel.splice(j,1);else sel.push(k);}
+        setSel(sel);paint(box,sel);render();
+      });
+      box.appendChild(b);
+    });
+    paint(box,getSel());
+  }
+  function paint(box,sel){
+    Array.prototype.forEach.call(box.querySelectorAll('button'),function(x){
+      var v=x.getAttribute('data-k');
+      x.setAttribute('aria-pressed',(v==='all'?!sel.length:sel.indexOf(v)>=0)?'true':'false');
+    });
+  }
+  function buildFilters(force){
+    var ms={},ws={},os={},ss={},ts={};
+    var now=new Date();ms[iso(now).slice(0,7)]=1;
+    rows.forEach(function(r){var d=String(r.data||'');if(d.length>=7)ms[d.slice(0,7)]=1;ws[weekStart(r.data)]=1;if(r.origem)os[r.origem]=(os[r.origem]||0)+1;if(r.servico)ss[r.servico]=(ss[r.servico]||0)+1;r.tags.forEach(function(x){ts[x]=(ts[x]||0)+1;});});
+    var mk=Object.keys(ms).sort().reverse();
+    var k=mk.join('|');if(force||k!==mesKey){mesKey=k;meses=meses.filter(function(x){return mk.indexOf(x)>=0;});multi('meses','m-',mk,function(x){return monthLabel(x);},function(){return meses;},function(v){meses=v;});}
+    var wk=Object.keys(ws).sort().reverse();
+    k=wk.join('|');if(force||k!==semKey){semKey=k;semanas=semanas.filter(function(x){return wk.indexOf(x)>=0;});multi('semanas','w-',wk,function(x){return weekLabel(x);},function(){return semanas;},function(v){semanas=v;});}
+    var ok=Object.keys(os).sort(function(a,b){return os[b]-os[a]||a.localeCompare(b);});
+    k=ok.join('|');if(force||k!==oriKey){oriKey=k;origens=origens.filter(function(x){return ok.indexOf(x)>=0;});multi('origens','or-',ok,function(x){return oL(x);},function(){return origens;},function(v){origens=v;});}
+    var sk=Object.keys(ss).sort(function(a,b){return ss[b]-ss[a]||a.localeCompare(b);});
+    k=sk.join('|');if(force||k!==serKey){serKey=k;servicos=servicos.filter(function(x){return sk.indexOf(x)>=0;});multi('servicos','sv-',sk,function(x){return svL(x);},function(){return servicos;},function(v){servicos=v;});}
+    var tk=Object.keys(ts).sort(function(a,b){return ts[b]-ts[a]||a.localeCompare(b);});
+    k=tk.join('|');if(force||k!==tagKey){tagKey=k;tagsSel=tagsSel.filter(function(x){return tk.indexOf(x)>=0;});multi('tags','tg-',tk,function(x){return tgL(x);},function(){return tagsSel;},function(v){tagsSel=v;});}
+  }
+  var FIDS=['f-all','f-nc','f-and','f-est','f-closed','f-lost','f-dead'];
+  FIDS.forEach(function(id){
+    var btn=document.getElementById(id);
+    btn.addEventListener('click',function(){
+      filter=btn.getAttribute('data-f');
+      FIDS.forEach(function(o){var x=document.getElementById(o);x.setAttribute('aria-pressed',x===btn?'true':'false');});
+      render();
+    });
+  });
+  var DIDS=['d-0','d-7','d-15','d-30'];
+  DIDS.forEach(function(id){
+    var btn=document.getElementById(id);
+    btn.addEventListener('click',function(){
+      dias=Number(btn.getAttribute('data-d'));
+      DIDS.forEach(function(x){var e=document.getElementById(x);e.setAttribute('aria-pressed',e===btn?'true':'false');});
+      render();
+    });
+  });
+  var TIDS=['t-all','t-q','t-m','t-f'];
+  TIDS.forEach(function(id){
+    var btn=document.getElementById(id);
+    btn.addEventListener('click',function(){
+      var x=btn.getAttribute('data-t');
+      if(x==='all')temps=[];else{var i=temps.indexOf(x);if(i>=0)temps.splice(i,1);else temps.push(x);}
+      TIDS.forEach(function(y){var e=document.getElementById(y),v=e.getAttribute('data-t');e.setAttribute('aria-pressed',(v==='all'?!temps.length:temps.indexOf(v)>=0)?'true':'false');});
+      render();
+    });
+  });
+  var urgb=document.getElementById('urg-btn');
+  urgb.addEventListener('click',function(){urgentOnly=!urgentOnly;urgb.setAttribute('aria-pressed',urgentOnly?'true':'false');if(urgentOnly){fuOnly=false;document.getElementById('fu-btn').setAttribute('aria-pressed','false');estOnly=false;document.getElementById('est-btn').setAttribute('aria-pressed','false');}render();});
+  var prb=document.getElementById('print-btn');
+  function setPrint(v){printing=v;if(v){estOnly=true;document.getElementById('est-btn').setAttribute('aria-pressed','true');}document.body.classList.toggle('printing',v);prb.setAttribute('aria-pressed',v?'true':'false');render();if(v)window.scrollTo({top:0});}
+  prb.addEventListener('click',function(){setPrint(!printing);});
+  var estb=document.getElementById('est-btn');
+  estb.addEventListener('click',function(){estOnly=!estOnly;estb.setAttribute('aria-pressed',estOnly?'true':'false');render();});
+  var fb=document.getElementById('fu-btn');
+  fb.addEventListener('click',function(){fuOnly=!fuOnly;fb.setAttribute('aria-pressed',fuOnly?'true':'false');render();});
+  function norm(s,x){
+    var par={};PARECER.forEach(function(p){par[p.k]=!!(x.parecer&&x.parecer[p.k]);});
+    return {id:s.id,nome:x.nome||s.id,tel:x.tel?String(x.tel):'',email:x.email?String(x.email):'',zip:x.zip?String(x.zip):'',data:x.data?String(x.data):'',hora:x.hora?String(x.hora):'',origem:x.origem?String(x.origem):'',servico:x.servico?String(x.servico):'',prazo:x.prazo?String(x.prazo):'',temperatura:x.temperatura?String(x.temperatura):'',tags:Array.isArray(x.tags)?x.tags.map(String):[],parecer:par,ultimoContato:x.ultimoContato?String(x.ultimoContato):'',ultimaTentativa:x.ultimaTentativa?String(x.ultimaTentativa):'',obs:x.obs?String(x.obs):'',obs_en:x.obs_en?String(x.obs_en):'',obs_es:x.obs_es?String(x.obs_es):'',contexto:x.contexto?String(x.contexto):'',dataVisita:x.dataVisita?String(x.dataVisita):'',dataEstimate:x.dataEstimate?String(x.dataEstimate):'',dataFollowUpEst:x.dataFollowUpEst?String(x.dataFollowUpEst):'',dataResposta:x.dataResposta?String(x.dataResposta):'',proxFollowUp:x.proxFollowUp?String(x.proxFollowUp):'',valor:Number(x.valor)||0,estimate:x.estimate?String(x.estimate):'',invoice:x.invoice?String(x.invoice):'',crm:x.crm&&/^https:\/\//.test(String(x.crm))?String(x.crm):''};
+  }
+  function emptyBox(k){list.textContent='';var b=el('div','list');var em=el('div','empty',t(k));em.style.background='var(--surface)';em.style.border='1px solid var(--line)';em.style.borderRadius='12px';b.appendChild(em);list.appendChild(b);}
+  function start(){
+    applyLang();
+    if(!window.claude||!window.claude.use){emptyBox('open_in_claude');return;}
+    window.claude.use('sample').then(function(s){sampler=s||null;if(s)render();});
+    window.claude.use('mcp').then(function(m){mcpNs=m||null;var b=document.getElementById('qb-btn');if(m){b.hidden=false;b.addEventListener('click',qbSync);}});
+    window.claude.use('db').then(function(d){
+      if(!d){emptyBox('sign_in');return;}
+      db=d;
+      db.doc('meta/painel').onSnapshot(function(sn){
+        var x=sn.exists?sn.data():null,v=x&&String(x.ultimaAtualizacao||'');
+        if(/^\d{4}-\d{2}-\d{2}$/.test(v)){updISO=v;document.getElementById('upd').textContent=t('upd')+': '+dmyFull(v);}
+        var q=x&&x.qbSync,qe=document.getElementById('qbupd');if(q&&q.em){qe.textContent=t('qb_done',{d:fmtStamp(q.em)});qe.hidden=false;}
+      },function(){});
+      db.collection('leads').onSnapshot(function(snap){
+        rows=snap.docs.map(function(s){return norm(s,s.data()||{});});
+        buildFilters(false);render();
+      },function(){say(t('conn_lost'));});
+    });
+  }
+  start();
+})();
+</script>
+<!--WONIMG-->
